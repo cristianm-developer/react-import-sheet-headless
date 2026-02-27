@@ -111,3 +111,10 @@ When continuing work (e.g. after opening Cursor or a new sprint), the user may r
 
 - **Before implementation:** Before writing any functional logic (Runners, Workers, or Hooks), **first propose the TypeScript interfaces and the folder structure**. Wait for user confirmation of the types before proceeding to the implementation.
 - **Rationale:** This ensures the data contract is solid and avoids rework; types and structure are the single source of truth for the feature.
+
+## 11. Backward Compatibility
+
+- **Do not break existing usage:** When implementing or updating a feature, **maintain backward compatibility**. Avoid breaking old structures, APIs, or data shapes in a way that forces consumers to change code without a migration path.
+- **Prefer reuse:** Where possible, **reuse or extend** existing types, hooks, and options instead of replacing them. Add new fields or overloads rather than removing or renaming existing ones.
+- **Automatic compatibility when needed:** If the new design cannot reuse the old structure, **provide a compatibility layer**: detect the old strategy (e.g. by shape, version, or optional flag) and normalize it internally to the new format so that code using the old API or data shape continues to work. Document the legacy form and any deprecation timeline in `docs/how-to.md` or release notes.
+- **Deprecation over removal:** Prefer **deprecation** (with clear docs and, if applicable, runtime warnings) over immediate removal. Plan a migration path before removing deprecated APIs or structures.

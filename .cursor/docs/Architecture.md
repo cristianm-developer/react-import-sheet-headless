@@ -15,6 +15,7 @@ When you change the project structure or flow, update this document in these pla
 | **Register() pattern or controller interfaces** | **"Utils (controller…)"** → **"Register() pattern"**: add or adjust built-in/custom Register(), interfaces for user-created controllers. |
 | **Registry entry type (cell/row/table) or table-level scope/atomicity** | **"Utils (controller…)"** → **"Registry entry type"** and **"Table-level validations"** (scope, output, atomicity). **6. Validator**, **7. Transform** for Runner and atomicity. |
 | **Sync vs async (cell/row sync, only table async) or table resilience** | **"Design principles"** → **Data flow** (Sync Row Loop → Async Table Check). **"Utils"** → **Sync vs async** and **Resilience for async table**. **6. Validator**, **7. Transform**: pipeline phases, try/catch, EXTERNAL_* codes, AbortController for fetch. |
+| **Backward compatibility (API, types, layout)** | **"Product architecture"** → **Backward compatibility**: compatibility layer, reuse vs new structure, deprecation. |
 
 Keep this document the single source of truth for structure and flow. See also `.cursor/rules/typescript-standards.mdc` §5 (Documentation Synchronization).
 
@@ -223,6 +224,17 @@ To ensure tree-shaking works perfectly, the public API uses only named exports:
 
 - **Public API in `src/index.ts`** must use **named exports only** (`export { ... }`, `export type { ... }`). No default export.
 - Bundlers (Webpack, Vite, etc.) can then eliminate dead code when the consumer imports only what they use (e.g. `import { useImporter } from '...'` without pulling in unused modules).
+
+### 4. Backward compatibility (public API and data structures)
+
+When adding or changing features, the library must not break existing consumers.
+
+- **Avoid breaking changes:** Do not remove or rename public types, hook signatures, provider props, or layout shapes in a way that forces immediate, irreparable breakage. Prefer **extending** (new optional fields, overloads) over replacing.
+- **Reuse when possible:** Reuse existing structures (e.g. same `SheetLayout` shape, same error shape) and evolve them in a backward-compatible way. New behaviour can be gated by new optional options or a version field.
+- **Compatibility layer when reuse is not possible:** If a new design cannot reuse the old structure, implement a **normalization step** that detects the old format (e.g. by checking for legacy fields, missing new fields, or a layout version) and converts it internally to the new format. Code that still passes the old shape continues to work without changes.
+- **Deprecation before removal:** Before removing a deprecated API or structure, document it as deprecated (in `docs/how-to.md` and types/comments if needed), and optionally log a one-time dev warning. Plan and document a migration path and a minimum support period so consumers can migrate.
+
+This is also reflected in `.cursor/rules/typescript-standards.mdc` (§11 Backward Compatibility).
 
 ---
 

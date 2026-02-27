@@ -10,6 +10,16 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-27 — Backward compatibility (rules and Architecture)
+
+**What changed:** New rule **§11 Backward Compatibility** in `.cursor/rules/typescript-standards.mdc`: maintain backward compatibility when implementing or updating features; avoid breaking old structures; prefer reusing or extending; if reuse is not possible, implement a compatibility layer that detects the old strategy and normalizes it; prefer deprecation over removal. **Architecture.md** updated with new subsection **"4. Backward compatibility (public API and data structures)"** under Product architecture (avoid breaking changes, reuse, compatibility layer, deprecation before removal) and a new row in the Anchors table.
+
+**Why:** Ensure the library does not break existing consumers when evolving the API, types, or layout; provide a clear migration path and, when needed, automatic handling of legacy usage.
+
+**Affected files:**
+- `.cursor/rules/typescript-standards.mdc` — New §11 Backward Compatibility.
+- `.cursor/docs/Architecture.md` — Anchors table (new backward-compatibility row); Product architecture §4 Backward compatibility.
+
 ### 2026-02-27 — Provider as brain, Hooks as interface (events only, no Zustand)
 
 **What changed:** Architecture and Construction Step 2 updated so the **Provider** is the single source of truth ("brain": layout, file, state, Workers lifecycle) and **Hooks** are the consumer interface ("nerves"). Four specialized hooks: **`useImporter({ layout })`** (entry point; **`processFile(file)`**, register*, abort), **`useImporterStatus()`** (status, progress), **`useSheetData()`** (sheet, errors), **`useSheetEditor()`** (editCell). Progress and high-frequency updates use **EventTarget** only; **no Zustand**.

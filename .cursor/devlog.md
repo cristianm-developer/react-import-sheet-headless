@@ -23,6 +23,16 @@ _(Add new entries at the top, most recent first.)_
 
 <!-- DEVLOG_ENTRIES -->
 
+### 2026-02-27 — Construction Step 6 (Validator) completed
+
+**Feature / area:** Validator step implemented: runs cell → row → table validators in a Web Worker over SanitizedSheet; returns only a delta of errors; main thread builds initial Sheet and applies delta via applyValidatorDelta.
+
+**Global state changes:**
+- New `src/core/validator/` (types/, runner/, worker/, hooks/, build-initial-sheet.ts, patch-delta.ts, index.ts). Worker entry `validator.worker` in tsup. useValidatorWorker (internal) exposes validate() and validateAndApply(); validateAndApply uses layout from context and setResult(patchedSheet). No new provider state (result already holds Sheet).
+- New `src/utils/controller/required/` with cell-required-validator (Register(), id `required`). Worker registry registers built-in required; Runner resolves by id from layout.
+
+**Technical decisions:** Cell and row validators are strictly sync; only table validators may be async. runTableValidation uses try/catch and returns EXTERNAL_VALIDATION_FAILED on throw; options.signal passed for abort. Delta shape: ValidatorErrorCell (rowIndex, cellKey, error), ValidatorErrorRow (rowIndex, error), ValidatorErrorSheet (error). Early exit on fatal in cell/row loops. Throttled progress (16ms) in runValidation. Coverage exclusion for useValidatorWorker.
+
 ### 2026-02-27 — Construction Step 4 (Convert) completed
 
 **Feature / area:** Convert step implemented: align RawSheet + sheetLayout to produce ConvertedSheet (fit) or ConvertResult (mismatch with reorderColumns, renameColumn, applyMapping). Runs on main thread.

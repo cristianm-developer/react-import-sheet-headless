@@ -8,6 +8,7 @@ export {
   useImporterStatus,
   useSheetData,
   useSheetEditor,
+  useSheetView,
   useImporterEventTarget,
   useImporterProgressSubscription,
 } from './hooks/index.js';
@@ -36,6 +37,13 @@ export type {
   ValidatedRow,
   ValidatorOrWithParams,
 } from './types/index.js';
+export type {
+  ExportOptions,
+  UseSheetViewOptions,
+  UseSheetViewReturn,
+  ViewCounts,
+  ViewFilterMode,
+} from './core/view/index.js';
 export type {
   RawParseResult,
   RawSheet,

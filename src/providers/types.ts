@@ -50,12 +50,19 @@ export interface ImporterContextValue {
   abort: () => void;
   dispatchProgress: (detail: ImporterProgressDetail) => void;
   setActiveWorker: (worker: Worker | null) => void;
+  persist: boolean;
+  persistKey: string;
+  hasRecoverableSession: boolean;
+  recoverSession: () => Promise<void>;
+  clearPersistedState: () => Promise<void>;
 }
 
 export interface ImporterProviderProps {
   children: ReactNode;
   layout?: SheetLayout | null;
   engine?: ParserEngine | null;
+  persist?: boolean;
+  persistKey?: string;
 }
 
 export interface UseImporterStateSettersDeps {

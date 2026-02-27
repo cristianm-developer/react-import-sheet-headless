@@ -5,6 +5,7 @@ export type { UseImporterOptions } from './types.js';
 export { useImporterStatus } from './useImporterStatus.js';
 export { useSheetData } from './useSheetData.js';
 export { useSheetEditor } from './useSheetEditor.js';
+export { useSheetView } from '../core/view/hooks/useSheetView.js';
 export {
   useImporterEventTarget,
   useImporterProgressSubscription,

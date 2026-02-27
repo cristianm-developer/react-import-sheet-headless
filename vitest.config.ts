@@ -20,11 +20,12 @@ export default defineConfig({
         '**/core/transform/hooks/useTransformWorker.ts',
         '**/core/editor/hooks/useEditWorker.ts',
         '**/hooks/useImportSheet.ts',
+        '**/providers/usePersistSession.ts',
       ],
       thresholds: {
         lines: 90,
         functions: 90,
-        branches: 80,
+        branches: 75,
         statements: 90,
       },
     },

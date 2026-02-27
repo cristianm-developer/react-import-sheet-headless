@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPaginatedResult } from './get-paginated-result.js';
+import { getPaginatedResult, getPaginatedResultFromRows } from './get-paginated-result.js';
 
 function makeRow(index: number) {
   return {
@@ -65,5 +65,17 @@ describe('getPaginatedResult', () => {
     const out = getPaginatedResult(sheet, 1, 0);
     expect(out.totalPages).toBe(0);
     expect(out.rows).toHaveLength(0);
+  });
+});
+
+describe('getPaginatedResultFromRows', () => {
+  it('should return correct slice and totalCount from row array', () => {
+    const rows = [10, 20, 30, 40];
+    const out = getPaginatedResultFromRows(rows, 2, 2);
+    expect(out.page).toBe(2);
+    expect(out.pageSize).toBe(2);
+    expect(out.totalCount).toBe(4);
+    expect(out.totalPages).toBe(2);
+    expect(out.rows).toEqual([30, 40]);
   });
 });

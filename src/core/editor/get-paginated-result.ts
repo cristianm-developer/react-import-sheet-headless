@@ -6,18 +6,26 @@ export function getPaginatedResult(
   page: number,
   pageSize: number,
 ): PaginatedResult<ValidatedRow> {
-  const totalCount = sheet.rows.length;
+  return getPaginatedResultFromRows(sheet.rows, page, pageSize);
+}
+
+export function getPaginatedResultFromRows<TRow>(
+  rows: readonly TRow[],
+  page: number,
+  pageSize: number,
+): PaginatedResult<TRow> {
+  const totalCount = rows.length;
   const totalPages =
     pageSize <= 0 ? 0 : Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.max(1, Math.min(page, totalPages));
   const start = (safePage - 1) * pageSize;
   const end = Math.min(start + pageSize, totalCount);
-  const rows = sheet.rows.slice(start, end);
+  const slice = rows.slice(start, end);
   return {
     page: safePage,
     pageSize,
     totalCount,
     totalPages,
-    rows,
+    rows: slice,
   };
 }

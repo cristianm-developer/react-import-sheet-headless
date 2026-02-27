@@ -80,6 +80,7 @@ Hooks consume the Provider context and expose a clear, narrow API. This improves
 | **`useImporterStatus()`** | Returns **status** (e.g. `idle`, `parsing`, `validating`, `success`, `error`) and a way to read **progress** (e.g. subscribe to EventTarget or a stable progress snapshot). For progress UI. |
 | **`useSheetData()`** | Returns the **result** (final sheet) and **errors** (from the sheet) for rendering the table. No knowledge of Workers. |
 | **`useSheetEditor()`** | Exposes **`editCell`** for the edit pipeline (scoped sanitize + validate + transform on a single cell). |
+| **`useSheetView()`** | Consumes result: paginated view, **filterMode** (all | errors-only), **totalRows** / **getRows** for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor. |
 
 **Example flow**
 
@@ -220,7 +221,7 @@ As the library grows, the key to a professional NPM-style library is to **separa
 **Principle (aligned with libraries like TanStack Query or Apollo Client):**
 
 - **Internal / infrastructure:** Context definition, Provider implementation, Worker/Comlink wiring, state setters, and any hook used only by the Provider (e.g. a hook that talks to Comlink). These live under **`src/providers/`** (and optionally internal hooks in **`src/hooks/`** that are not re-exported from **`src/index.ts`**).
-- **Public / consumption:** The component **`ImporterProvider`**, the hooks **`useImporter`**, **`useImporterStatus`**, **`useSheetData`**, **`useSheetEditor`**, and the types needed to use them (e.g. **`SheetLayout`**, **`SheetError`**, **`ProcessedSheet`**). These are the only symbols the user should import; they are re-exported from **`src/index.ts`** (the barrel).
+- **Public / consumption:** The component **`ImporterProvider`**, the hooks **`useImporter`**, **`useImporterStatus`**, **`useSheetData`**, **`useSheetEditor`**, **`useSheetView`**, and the types needed to use them (e.g. **`SheetLayout`**, **`SheetError`**, **`ProcessedSheet`**). These are the only symbols the user should import; they are re-exported from **`src/index.ts`** (the barrel).
 
 **Where things live:**
 
@@ -366,6 +367,15 @@ src/
       hooks/
         useEditWorker.ts    # internal: runEdit via Worker
       index.ts
+    view/
+      types/                # UseSheetViewOptions, UseSheetViewReturn, ExportOptions, PersistedState
+      get-rows-with-errors.ts
+      get-view-counts.ts
+      export/               # sheetToCSV, sheetToJSON (BOM, escape)
+      persist/              # IndexedDB save/load/clear, 7-day expiry
+      hooks/
+        useSheetView.ts     # composes useSheetEditor; pagination, filterMode, totalRows, getRows, export, persist
+      index.ts
   hooks/                    # Public hooks (cross-process or app-level)
     types.ts                # UseImporterOptions and other hook option/contract types
     useImporter.ts          # useImporter({ layout }): processFile, register*, abort
@@ -373,6 +383,7 @@ src/
     useImporterStatus.ts    # status, progressEventTarget
     useSheetData.ts         # sheet, errors
     useSheetEditor.ts       # sheet, editCell, pageData, totalPages (uses useEditWorker)
+    useSheetView.ts         # re-export from core/view; sheet, pagination, filterMode, totalRows, getRows, export, persist
     useImporterEventTarget.ts # progressEventTarget, subscribeToProgress
     index.ts
   utils/
@@ -435,8 +446,9 @@ Each process has its own **context** and logic under **`core/`**:
 | **Validator** | `core/validator/`   | Take sanitizer output (or RawSheet) + `sheetLayout`, run cell → row → sheet validators in Worker, output **sheet** with errors (or errors/deltas for main to patch). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Transform** | `core/transform/`   | Take validated **sheet** + `sheetLayout`, run cell → row → sheet transforms in Worker (only where no errors). Output **sheet** with transformed values (or deltas). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Editor**  | `core/editor/`         | Expose result **sheet** and **editCell**. Run scoped validation + transform on edit in a **Web Worker** (runEditPipeline); update provider with new sheet. Paginated result (pageData, totalPages) as derived state; structural immutability for React.memo. |
+| **View**    | `core/view/`           | Consume result: **useSheetView** composes useSheetEditor; exposes paginated result, **filterMode** (all | errors-only), **totalRows** / **getRows(offset, limit)** for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), **persist** (IndexedDB, debounce, 7-day expiry, hasRecoverableSession, recoverSession, clearPersistedState). |
 
-Contexts are **separated per process** (e.g. parser context, validator context, transform context, editor context or a unified importer context that composes them). The **ImporterProvider** (from Setting) is the **brain**: it holds **layout**, **file**, **status**, **result (sheet)**, **errors** (inside the sheet), and the **Worker** lifecycle; it exposes **processFile** (via `useImporter`) and **editCell** (via `useSheetEditor`). **Progress** is not in Context; it is emitted via **EventTarget** so only the progress UI re-renders (see *Provider as brain, Hooks as interface* and *Progress and re-renders: EventTarget*).
+Contexts are **separated per process** (e.g. parser context, validator context, transform context, editor context or a unified importer context that composes them). The **ImporterProvider** (from Setting) is the **brain**: it holds **layout**, **file**, **status**, **result (sheet)**, **errors** (inside the sheet), **persist** / **persistKey**, and the **Worker** lifecycle; it exposes **processFile** (via `useImporter`), **editCell** (via `useSheetEditor`), and **persist** APIs (hasRecoverableSession, recoverSession, clearPersistedState) when **persist** is true. **Progress** is not in Context; it is emitted via **EventTarget** so only the progress UI re-renders (see *Provider as brain, Hooks as interface* and *Progress and re-renders: EventTarget*).
 
 ### Utils (controller by context/field) — Building Blocks & Registry Pattern
 
@@ -531,6 +543,7 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
   - **`useImporterStatus()`** — returns status and progress (EventTarget subscription or snapshot); for progress UI.
   - **`useSheetData()`** — returns result (sheet) and errors; for table rendering.
   - **`useSheetEditor()`** — returns **`editCell`**; for the edit pipeline.
+  - **`useSheetView()`** — returns paginated view, filterMode, totalRows/getRows (virtualization), export (CSV/JSON), persist (hasRecoverableSession, recoverSession, clearPersistedState).
 - **Internal hooks** (used only by the Provider or by other hooks, **not** exported from **`src/index.ts`**):
   - **`src/hooks/`** — e.g. `useImporterEventTarget`, or any hook that wraps Comlink/Worker for the Provider (e.g. `useInternalWorker`). Keep these in `src/hooks/` for discoverability but do **not** list them in the barrel.
   - **`src/providers/`** — e.g. `useImporterContext`, `useImporterStateSetters`, `useImporterActions`; only the Provider and public hooks import them.
@@ -548,7 +561,7 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 - **`src/types/index.ts`** — re-exports all shared types from `src/types/`.
 - **`src/index.ts`** — **single control point for the public API.** It exports **only** what the user needs:
   - **Provider:** `ImporterProvider` from `src/providers/ImporterProvider` (or `src/providers`).
-  - **Public hooks:** `useImporter`, `useImporterStatus`, `useSheetData`, `useSheetEditor` from `src/hooks/`.
+  - **Public hooks:** `useImporter`, `useImporterStatus`, `useSheetData`, `useSheetEditor`, `useSheetView` from `src/hooks/`.
   - **Public types:** e.g. `SheetLayout`, `SheetError`, `ProcessedSheet` (or equivalent) from `src/types/`.
   - It must **not** export: the Context instance, `useImporterContext`, internal worker hooks, or internal provider modules. This keeps the library surface clean and NPM-friendly (see *Public API vs internal*).
 - Each **`core/<process>/`** has:
@@ -575,14 +588,15 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 
 ## Flow summary
 
-1. **Setting (0):** **ImporterProvider** is the single source of truth (layout, file, state, Workers lifecycle). It uses **EventTarget** for progress (no Zustand). Public API: **`useImporter({ layout })`** (entry point; exposes **`processFile(file)`**, register APIs, `abort`), **`useImporterStatus()`** (status + progress), **`useSheetData()`** (result + errors), **`useSheetEditor()`** (`editCell`). Shared types in `src/types/`; Provider maintains three `Registry` instances and exposes register APIs for Zero-Bundle-Size.
+1. **Setting (0):** **ImporterProvider** is the single source of truth (layout, file, state, Workers lifecycle, optional **persist** / **persistKey**). It uses **EventTarget** for progress (no Zustand). Public API: **`useImporter({ layout })`** (entry point; exposes **`processFile(file)`**, register APIs, `abort`), **`useImporterStatus()`** (status + progress), **`useSheetData()`** (result + errors), **`useSheetEditor()`** (`editCell`), **`useSheetView()`** (paginated view, filterMode, totalRows/getRows, export, persist). Shared types in `src/types/`; Provider maintains three `Registry` instances and exposes register APIs for Zero-Bundle-Size.
 2. **Parser (1):** Reads file in Worker, produces `RawSheet`; updates provider; dispatches progress via **EventTarget**. Types like `RawSheet` in `core/parser/types/`.
 3. **Convert (2):** Consumes `RawSheet` + `sheetLayout`; aligns headers to layout; produces **ConvertedSheet** or **ConvertResult** (headers found, mismatches, reorderColumns, renameColumn, applyMapping). Runs on main thread. See **4. Convert.md**.
 4. **Sanitizer (3):** Runs **before Validator**. Consumes **ConvertedSheet** + `sheetLayout`; runs **cell → row → sheet** sanitizers in Worker; produces normalized output. Updates provider; dispatches progress via **EventTarget**. Implementations in `utils/controller/[context]`.
 5. **Validator (4):** Consumes sanitizer output + `sheetLayout`; runs validators in Worker: **sync** cell/row loop, then **async** table check (if any); produces **sheet** with errors (or errors/deltas); updates provider; dispatches progress via **EventTarget**. Table validators may be async (backend); Runner uses try/catch and AbortController for resilience. Implementations in `utils/controller/[context]`.
 6. **Transform (5):** Consumes validated **sheet** + `sheetLayout`; runs transforms in Worker (only where no errors): **sync** cell/row loop, then **async** table check (if any); produces final **sheet** (or deltas); updates provider; dispatches progress via **EventTarget**. Table transforms may be async; same resilience (try/catch, AbortController). Implementations in `utils/controller/[context]`.
 7. **Edit (6):** Provider exposes **result (sheet)** and **errors** (from sheet) and **editCell**. On edit, **runEditPipeline** runs in a **Web Worker** (edit.worker.ts): set cell value → cell validators (that cell) → row validators (that row) → sheet validators → cell/row/sheet transforms (safe-first). Editor reuses validator and transform runners in scope; **pageData** and **totalPages** are derived from sheet and page/pageSize; structural immutability for React.memo.
+8. **View (7):** **useSheetView** composes useSheetEditor; exposes **paginated result** (page, setPage, paginatedRows, getPaginatedResult), **filterMode** (all | errors-only) with memoized **rowsWithErrors** and **counts**, **totalRows** / **getRows(offset, limit)** for virtualization (e.g. react-window, @tanstack/react-virtual), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), and when **persist** is true: **hasRecoverableSession**, **recoverSession**, **clearPersistedState** (IndexedDB, debounce, 7-day expiry).
 
 All of this is **headless**: the library provides state, result, errors, edit functions, and an **EventTarget** for progress so only the progress UI re-renders; the consumer builds the UI in English or any language.
 
-**Construction Steps (docs):** Numbered 1–11: **1. PackageSetting**, **2. Setting**, **3. Parser**, **4. Convert**, **5. Sanitizer**, **6. Validator**, **7. Transform**, **8. Edit**, **9. View**, **10. Readme**, **11. Telemetry**. The pipeline in the Flow summary (Setting → Parser → … → Edit) corresponds to steps 2–8 in that list.
+**Construction Steps (docs):** Numbered 1–11: **1. PackageSetting**, **2. Setting**, **3. Parser**, **4. Convert**, **5. Sanitizer**, **6. Validator**, **7. Transform**, **8. Edit**, **9. View**, **10. Readme**, **11. Telemetry**. The pipeline in the Flow summary (Setting → Parser → … → Edit → View) corresponds to steps 2–9 in that list.

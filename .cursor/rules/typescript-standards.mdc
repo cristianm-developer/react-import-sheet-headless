@@ -1,0 +1,113 @@
+---
+description: TypeScript/TSX coding standards and workflow for react-import-sheet-headless
+globs: "**/*.ts, **/*.tsx"
+alwaysApply: true
+---
+
+# TypeScript Standards
+
+## 1. Clean Code & Documentation
+
+- **No comments:** Omit JSDoc and inline comments. Code must be self-explanatory through meaningful naming. **Exception:** short inline comments are allowed when marking 1-based ↔ 0-based pagination conversions (see §9 Consistency in Pagination).
+- **English Only:** All code, identifiers, commit messages, and documentation must be in English.
+- **Named Exports:** Use only named exports to support tree-shaking. Avoid `export default`.
+
+## 2. Strict Type Safety
+
+- **Compiler:** Respect `npm run lint`. Code must pass type-check.
+- **Strict Options:** strict, noUncheckedIndexedAccess, noImplicitOverride, noImplicitReturns.
+- **No Any:** Avoid `any`. Use `unknown` or specific interfaces.
+
+## 3. Testing & Reliability
+
+- **Colocated Tests:** Every source file must have a `.test.ts(x)` file in the same folder.
+- **Vitest:** Use Vitest for all unit and integration tests.
+- **Test Descriptions:** Use natural-language, descriptive test descriptions (e.g. `it('should return a delta of errors instead of the whole sheet', ...)`) so Vitest output doubles as technical documentation.
+- **Coverage:** Ensure new features maintain or improve the 80% coverage threshold.
+
+## 4. Architecture & Structure
+
+- **Reference Docs:** Always read `.cursor/docs/Architecture.md` before creating new modules.
+- **Folder Pattern:** Follow `core/<process>/[types|hooks|worker]`.
+- **Pipeline Order:** Parser → Convert → Sanitizer → Validator → Transform → View.
+
+## 5. Rule: Documentation Synchronization (Auto-Registry) — Golden Rule
+
+This rule is **mandatory** at the end of every task. The AI must perform a **documentation phase** after implementing any feature, hook, utility, or type.
+
+### Post-Implementation Duty
+
+After successfully implementing a new feature, hook, utility, or type, you **MUST**:
+
+1. **Update `.cursor/docs/Architecture.md`** to reflect:
+   - **Folder structure:** If you create or rename folders (e.g. `src/core/convert`), add or update the entry in the **"Folder structure"** section (see *Anchors for updates* in Architecture.md).
+   - **Data flow:** If the pipeline or flow changes (e.g. Parser → Validator becomes Parser → Convert → Validator), redraw or update the flow diagram/arrows in the **"Flow summary"** and **"Design principles → Headless → Data flow"** sections.
+   - **Responsibilities:** If a module’s responsibility changes, update the **Core modules** table and any related paragraphs.
+2. **If the public API changes** (hooks, provider props, exported types): update **`docs/how-to.md`** (create it under project root `docs/` if missing). Keep `docs/validators.md` and `docs/transformers.md` in sync when validators/transformers or their options change. Users must never need to read source code to use the library.
+3. **Registry of changes:** Create or update **`.cursor/history.md`** (or root **`CHANGELOG.md`**) with a **brief summary**: what changed, why, and which files were affected. One entry per logical change.
+
+### Anchors for Architecture.md (where to insert)
+
+- **New or renamed folders** → Update the tree and tables under **"## Folder structure"** (Root layout, Core modules, Utils, Hooks, Barrels).
+- **Pipeline or flow change** → Update **"## Flow summary"** (numbered list and arrows) and the **Data flow** line under **"### Headless"** in Design principles.
+- **New core module or responsibility shift** → Update the **Core modules** table and the **Flow summary** steps.
+
+### Audit Before Proceeding
+
+**Before starting any new prompt or task**, you **MUST**:
+
+- Read **`.cursor/docs/Architecture.md`** to have the full picture of the current data flow, folder structure, and responsibilities.
+- Read the **latest entries** in **`.cursor/history.md`** (and optionally **`.cursor/devlog.md`**) to understand recent decisions and the current state.
+
+Do not assume the codebase state; verify it from these documents.
+
+### Planning mode: building steps
+
+When the user indicates they are **planning** something and ask for help **building the steps**, you **MUST** update **both**:
+
+1. **`.cursor/docs/Architecture.md`** — as per the anchors above (folder structure, flow summary, core modules, data flow). Keep it the single source of truth for structure and pipeline.
+2. **The corresponding step** in **`.cursor/docs/Construction Steps/`** — e.g. `3. Parser.md`, `4. Convert.md`, `5. Sanitizer.md`, `6. Validator.md`, `7. Transform.md`, `8. Edit.md`, `9. View.md`, etc. Match the step by pipeline position or name. In that step doc, add or refine: objective, position in pipeline, input/output, contracts (types and result shapes), and sub-tasks or checklist so the step remains the single reference for that phase of construction.
+
+Do not only change Architecture; every planning or step-building session that affects a pipeline phase must also update the corresponding Construction Step file.
+
+### Devlog and Construction Plan
+
+- **`.cursor/devlog.md`** is the chronological journal of work sessions. After **each Construction Step** (or equivalent milestone), you **MUST**:
+  1. Write a short summary in **`.cursor/devlog.md`** (date, feature added, global state changes, key technical decisions).
+  2. Mark the step as completed in the construction plan (e.g. in the corresponding doc under `.cursor/docs/Construction Steps/` or in a central checklist if one exists).
+
+- **Related docs and tests:** When you change behaviour or add features, update the **README** that covers that area (root README, `src/utils/controller/README.md`, or a controller-specific README), and add or update the **related tests** so the suite stays green and the change is documented by tests.
+
+### Sync at start of each session
+
+When continuing work (e.g. after opening Cursor or a new sprint), the user may run the **sync prompt** so the AI loads current context before taking new tasks. The prompt and instructions are in **`.cursor/docs/sync-prompt.md`**. The AI should respond by summarizing the project state (from Architecture.md and the latest devlog/history entries) and proposing the next logical step from the construction plan.
+
+## 6. Performance & State (Context & Reference Stability)
+
+- **Immutability:** All state updates in the Provider and Hooks must be immutable. Use functional updates for React state to avoid stale closures.
+- **Context stability (Provider and Hooks):** When generating Hooks or Providers, **every function returned must be wrapped in `useCallback`**. All **derived data or slices of state** must be wrapped in **`useMemo`**. Ensure that the **value object of the Context Provider itself is memoized** (e.g. one `useMemo` for the whole `value`) to prevent unnecessary tree re-renders. This preserves referential equality and avoids breaking consumer optimizations such as `React.memo` or virtualizers. See `.cursor/docs/Architecture.md` (Context stability).
+- **Delta Strategy:** Favor returning deltas from Workers instead of full data structures.
+- **Throttling:** Implement throttling for high-frequency events (e.g. progress updates).
+
+## 7. Strict Worker Isolation
+
+- **Scope:** Files with the suffix **`.worker.ts`** operate in a **global scope without DOM access**.
+- **Forbidden in workers:** You are **strictly forbidden** from using `window`, `document`, `localStorage`, or `sessionStorage` inside any `.worker.ts` file.
+- **Shared utilities:** If a utility is shared between main thread and worker, **verify it does not touch the DOM** before importing it into a worker. When in doubt, keep worker code self-contained or use a dedicated worker-safe utility module.
+
+## 8. Delta-Patching Integrity
+
+- **Applier logic (main thread):** When implementing the "Applier" logic for Worker deltas, use an **immutable patching strategy**. Do not mutate the existing sheet/state in place.
+- **Apply once:** Ensure that **each delta is applied exactly once** using unique row/cell identifiers (e.g. row index + cell key) so the same change is not applied multiple times.
+- **Validation:** After applying patches, **validate that the final state does not contain duplicate entries or inconsistent indices**. Assert or check invariants (e.g. row count, cell keys per row) when appropriate.
+
+## 9. Consistency in Pagination
+
+- **Public API (UI):** Standardize all **pagination to be 1-based** for the public API (e.g. `currentPage`, `totalPages`, props and hook return values consumed by the UI).
+- **Internal logic:** Use **0-based indexing** for internal array slicing and loop indices (e.g. `rows.slice((page - 1) * pageSize, page * pageSize)`).
+- **Conversion comments:** **Explicitly comment in the code** when a conversion between 1-based and 0-based is happening (e.g. `// 1-based page → 0-based start index`) to avoid index mismatches and off-by-one errors.
+
+## 10. Type-First Implementation (Drafting Protocol)
+
+- **Before implementation:** Before writing any functional logic (Runners, Workers, or Hooks), **first propose the TypeScript interfaces and the folder structure**. Wait for user confirmation of the types before proceeding to the implementation.
+- **Rationale:** This ensures the data contract is solid and avoids rework; types and structure are the single source of truth for the feature.

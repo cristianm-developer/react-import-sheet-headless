@@ -21,8 +21,10 @@ export {
 } from './types/index.js';
 export type {
   BaseSheet,
+  EditCellParams,
   FieldInputType,
   FieldValueType,
+  PaginatedResult,
   ParserEngine,
   Sheet,
   SheetError,

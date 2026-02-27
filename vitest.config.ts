@@ -18,6 +18,7 @@ export default defineConfig({
         '**/core/sanitizer/hooks/useSanitizerWorker.ts',
         '**/core/validator/hooks/useValidatorWorker.ts',
         '**/core/transform/hooks/useTransformWorker.ts',
+        '**/core/editor/hooks/useEditWorker.ts',
         '**/hooks/useImportSheet.ts',
       ],
       thresholds: {

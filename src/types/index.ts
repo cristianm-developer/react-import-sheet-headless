@@ -9,6 +9,8 @@ export type {
   RawSheetRow,
 } from './raw-sheet.js';
 export type { Sheet, ValidatedCell, ValidatedRow } from './sheet.js';
+export type { EditCellParams } from './edit.js';
+export type { PaginatedResult } from './paginated-result.js';
 export type {
   SheetLayout,
   SheetLayoutField,

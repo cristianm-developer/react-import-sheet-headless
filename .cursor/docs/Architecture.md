@@ -358,11 +358,13 @@ src/
       ...                   # runner/, worker/
       index.ts
     editor/
-      types/                # EditCellParams, EditResult (if not in src/types)
-        index.ts
+      resolve.ts            # getRowByIndex, getCellByKey
+      immutable-update.ts   # setCellValue (structural immutability)
+      get-paginated-result.ts
+      run-edit-pipeline.ts  # runEditPipeline (validator + transform scoped)
+      worker/               # edit.worker.ts (Comlink runEdit), worker-url.ts
       hooks/
-        useSheetEdit.ts
-      ...                   # resolve, immutable-update, run-edit-pipeline
+        useEditWorker.ts    # internal: runEdit via Worker
       index.ts
   hooks/                    # Public hooks (cross-process or app-level)
     types.ts                # UseImporterOptions and other hook option/contract types
@@ -370,7 +372,7 @@ src/
     useImportSheet.ts       # useImportSheet(): startFullImport; triggers parser load on processFile
     useImporterStatus.ts    # status, progressEventTarget
     useSheetData.ts         # sheet, errors
-    useSheetEditor.ts       # editCell (stub until Step 8)
+    useSheetEditor.ts       # sheet, editCell, pageData, totalPages (uses useEditWorker)
     useImporterEventTarget.ts # progressEventTarget, subscribeToProgress
     index.ts
   utils/
@@ -411,7 +413,7 @@ src/
     - **Sanitizer:** `core/sanitizer/types/` — sanitizer worker messages, progress payloads.
     - **Validator:** `core/validator/types/` — validator worker messages, progress payloads.
     - **Transform:** `core/transform/types/` — transform worker messages, progress payloads.
-    - **Editor:** `core/editor/types/` — `EditCellParams`, `EditResult` (if not shared).
+    - **Edit (shared):** `src/types/edit.ts`, `src/types/paginated-result.ts` — `EditCellParams`, `PaginatedResult`.
   - Re-exported from **`<module>/types/index.ts`** (and from **`<module>/index.ts`** if part of the public surface).
 
 **One type per file**
@@ -432,7 +434,7 @@ Each process has its own **context** and logic under **`core/`**:
 | **Sanitizer** | `core/sanitizer/`    | Runs **before Validator**. Take **ConvertedSheet** (from Convert) + `sheetLayout`, run cell → row → sheet sanitizers in Worker; output normalized/cleaned data. Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Validator** | `core/validator/`   | Take sanitizer output (or RawSheet) + `sheetLayout`, run cell → row → sheet validators in Worker, output **sheet** with errors (or errors/deltas for main to patch). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Transform** | `core/transform/`   | Take validated **sheet** + `sheetLayout`, run cell → row → sheet transforms in Worker (only where no errors). Output **sheet** with transformed values (or deltas). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
-| **Editor**  | `core/editor/`         | Expose result **sheet** and **editCell**. Run scoped sanitizer + validation + transform on edit; update provider with new sheet. No Worker required for single-cell edit. |
+| **Editor**  | `core/editor/`         | Expose result **sheet** and **editCell**. Run scoped validation + transform on edit in a **Web Worker** (runEditPipeline); update provider with new sheet. Paginated result (pageData, totalPages) as derived state; structural immutability for React.memo. |
 
 Contexts are **separated per process** (e.g. parser context, validator context, transform context, editor context or a unified importer context that composes them). The **ImporterProvider** (from Setting) is the **brain**: it holds **layout**, **file**, **status**, **result (sheet)**, **errors** (inside the sheet), and the **Worker** lifecycle; it exposes **processFile** (via `useImporter`) and **editCell** (via `useSheetEditor`). **Progress** is not in Context; it is emitted via **EventTarget** so only the progress UI re-renders (see *Provider as brain, Hooks as interface* and *Progress and re-renders: EventTarget*).
 
@@ -538,7 +540,7 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
   - **`core/sanitizer/hooks/`** — e.g. `useSanitizerWorker`.
   - **`core/validator/hooks/`** — e.g. `useValidatorWorker`.
   - **`core/transform/hooks/`** — e.g. `useTransformWorker`.
-  - **`core/editor/hooks/`** — e.g. `useSheetEdit`; used by `useSheetEditor()`.
+  - **`core/editor/hooks/`** — e.g. `useEditWorker`; used by `useSheetEditor()`.
 - Only the **four public hooks** above are re-exported from **`src/index.ts`**.
 
 ### Barrels (index and types)
@@ -579,7 +581,7 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 4. **Sanitizer (3):** Runs **before Validator**. Consumes **ConvertedSheet** + `sheetLayout`; runs **cell → row → sheet** sanitizers in Worker; produces normalized output. Updates provider; dispatches progress via **EventTarget**. Implementations in `utils/controller/[context]`.
 5. **Validator (4):** Consumes sanitizer output + `sheetLayout`; runs validators in Worker: **sync** cell/row loop, then **async** table check (if any); produces **sheet** with errors (or errors/deltas); updates provider; dispatches progress via **EventTarget**. Table validators may be async (backend); Runner uses try/catch and AbortController for resilience. Implementations in `utils/controller/[context]`.
 6. **Transform (5):** Consumes validated **sheet** + `sheetLayout`; runs transforms in Worker (only where no errors): **sync** cell/row loop, then **async** table check (if any); produces final **sheet** (or deltas); updates provider; dispatches progress via **EventTarget**. Table transforms may be async; same resilience (try/catch, AbortController). Implementations in `utils/controller/[context]`.
-7. **Edit (6):** Provider exposes **result (sheet)** and **errors** (from sheet) and **editCell**. On edit, run scoped sanitizer + validation + transform and update provider sheet. Editor uses the same controller runners in scope (cell → row → sheet), resolved from `utils/controller/[context]`.
+7. **Edit (6):** Provider exposes **result (sheet)** and **errors** (from sheet) and **editCell**. On edit, **runEditPipeline** runs in a **Web Worker** (edit.worker.ts): set cell value → cell validators (that cell) → row validators (that row) → sheet validators → cell/row/sheet transforms (safe-first). Editor reuses validator and transform runners in scope; **pageData** and **totalPages** are derived from sheet and page/pageSize; structural immutability for React.memo.
 
 All of this is **headless**: the library provides state, result, errors, edit functions, and an **EventTarget** for progress so only the progress UI re-renders; the consumer builds the UI in English or any language.
 

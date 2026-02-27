@@ -11,6 +11,13 @@ import {
   useSheetEditor,
 } from '../index.js';
 
+vi.mock('../core/editor/hooks/useEditWorker.js', () => ({
+  useEditWorker: () => ({
+    runEdit: vi.fn().mockResolvedValue(undefined),
+    isReady: true,
+  }),
+}));
+
 function StatusConsumer() {
   const { file, rawData, documentHash, status, result } = useImporterContext();
   return (

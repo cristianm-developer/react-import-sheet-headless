@@ -65,7 +65,7 @@ function UploadAndImport() {
 | **`useConvert()`** | After raw data is set: `convert()` to align headers to layout; returns `convertedSheet` or `convertResult` (reorder/rename/applyMapping). |
 | **`useImporterStatus()`** | `status` and progress (subscribe to EventTarget for `importer-progress` / `importer-aborted`). |
 | **`useSheetData()`** | Result `sheet` and `errors` for the table. |
-| **`useSheetEditor()`** | `editCell` for the edit pipeline (when implemented). |
+| **`useSheetEditor({ page?, pageSize?, debounceMs? })`** | Result `sheet`, **`editCell({ rowIndex, cellKey, value })`**, **`pageData`**, **`totalPages`** for paginated editing. |
 
 **Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build sheet with errors) → run **Transform** on that sheet (Worker returns value deltas; main thread applies **`applyTransformDelta`** to get final **result**); progress and result available via hooks and EventTarget.
 
@@ -76,3 +76,4 @@ function UploadAndImport() {
 - [How to: Sanitizer](how-to-sanitizer.md) — valueType casting, cell/row/sheet sanitizers, Convert → Sanitizer → Validator.
 - [How to: Validators](how-to-validators.md) — cell/row/table validators, delta of errors, Register(), I18n, sync vs async.
 - [How to: Transformers](how-to-transformers.md) — cell/row/sheet transforms, delta of values, Register(), safe-first, sync vs async.
+- [How to: Edit](how-to-edit.md) — editCell, paginated result, debounce, rowIndex global, structural immutability.

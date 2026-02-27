@@ -46,8 +46,11 @@ export function useSheetView(
     [getPaginatedResult, page, pageSize],
   );
   const getRows = useCallback(
-    (offset: number, limit: number) =>
-      sourceRows.slice(offset, offset + limit),
+    (page: number, limit: number) => {
+      // 1-based page → 0-based start index
+      const start = (page - 1) * limit;
+      return sourceRows.slice(start, start + limit);
+    },
     [sourceRows],
   );
   const counts = useMemo(

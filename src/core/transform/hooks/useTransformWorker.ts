@@ -22,7 +22,8 @@ type TransformWorkerApi = {
 };
 
 export function useTransformWorker() {
-  const { setActiveWorker, dispatchProgress, setResult, layout } = useImporterContext();
+  const { setActiveWorker, dispatchProgress, setResult, layout, setPhaseTiming, finalizeMetrics } =
+    useImporterContext();
   const [workerProxy, setWorkerProxy] = useState<Comlink.Remote<TransformWorkerApi> | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -61,16 +62,20 @@ export function useTransformWorker() {
       onProgress?: (d: ImporterProgressDetail) => void,
     ): Promise<TransformResult> => {
       if (!layout) throw new Error('Layout required for transform');
+      const t0 = performance.now();
       const result = await transform(sheet, layout, options, onProgress);
+      const t1 = performance.now();
+      setPhaseTiming('transform', t1 - t0);
       const patched = applyTransformDelta(sheet, { deltas: result.deltas });
       const nextSheet =
         result.errors?.length ?
           { ...patched, errors: [...patched.errors, ...result.errors] }
         : patched;
       setResult(nextSheet);
+      finalizeMetrics(nextSheet.rows.length);
       return result;
     },
-    [layout, transform, setResult],
+    [layout, transform, setResult, setPhaseTiming, finalizeMetrics],
   );
 
   return { transform, transformAndApply, dispatchProgress, isReady: !!workerProxy };

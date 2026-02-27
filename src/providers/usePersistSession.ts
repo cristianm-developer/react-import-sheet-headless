@@ -6,6 +6,11 @@ import {
   loadPersistedState,
   clearPersistedState as clearPersistedStateStorage,
 } from '../core/view/persist/indexed-db.js';
+import {
+  STATE_SCHEMA_VERSION,
+  type PersistedState as PersistedStateType,
+} from '../core/view/types/persisted-state.js';
+
 const DEBOUNCE_MS = 2500;
 
 export function usePersistSession(
@@ -15,36 +20,44 @@ export function usePersistSession(
   result: Sheet | null,
   setRawData: (v: RawSheet | null) => void,
   setResult: (v: Sheet | null) => void,
+  layoutVersion: string | number | null,
 ) {
-  const [recoverableSession, setRecoverableSession] = useState<{
-    rawData: RawSheet;
-    sheet: Sheet;
-    savedAt: number;
-  } | null>(null);
+  const [recoverableSession, setRecoverableSession] = useState<PersistedStateType | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!persist) return;
     loadPersistedState(persistKey).then((state) => {
-      if (state) setRecoverableSession(state);
+      if (!state) return;
+      if (
+        state.layoutVersion != null &&
+        layoutVersion != null &&
+        String(state.layoutVersion) !== String(layoutVersion)
+      ) {
+        return;
+      }
+      setRecoverableSession(state);
     });
-  }, [persist, persistKey]);
+  }, [persist, persistKey, layoutVersion]);
 
   useEffect(() => {
     if (!persist || !rawData || !result) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
-      savePersistedState(persistKey, {
+      const payload: PersistedStateType = {
         rawData,
         sheet: result,
         savedAt: Date.now(),
-      }).catch(() => {});
+        layoutVersion: layoutVersion ?? undefined,
+        stateSchemaVersion: STATE_SCHEMA_VERSION,
+      };
+      savePersistedState(persistKey, payload).catch(() => {});
     }, DEBOUNCE_MS);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [persist, persistKey, rawData, result]);
+  }, [persist, persistKey, rawData, result, layoutVersion]);
 
   const recoverSession = useCallback(async () => {
     if (!persist) return;

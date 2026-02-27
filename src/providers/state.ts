@@ -9,4 +9,5 @@ export const initialState: ImporterState = {
   convertedSheet: null,
   sanitizedSheet: null,
   convertResultData: null,
+  metrics: null,
 };

@@ -17,7 +17,7 @@ type SanitizerWorkerApi = {
 };
 
 export function useSanitizerWorker() {
-  const { setActiveWorker, dispatchProgress } = useImporterContext();
+  const { setActiveWorker, dispatchProgress, setPhaseTiming } = useImporterContext();
   const [workerProxy, setWorkerProxy] = useState<Comlink.Remote<SanitizerWorkerApi> | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -44,9 +44,18 @@ export function useSanitizerWorker() {
       if (!workerProxy) throw new Error('Sanitizer worker not ready');
       const progressCb = onProgress ?? dispatchProgress;
       const progressProxy = Comlink.proxy(progressCb);
-      return workerProxy.sanitize(convertedSheet, sheetLayout, options ?? {}, progressProxy);
+      const t0 = performance.now();
+      const result = await workerProxy.sanitize(
+        convertedSheet,
+        sheetLayout,
+        options ?? {},
+        progressProxy,
+      );
+      const t1 = performance.now();
+      setPhaseTiming('sanitize', t1 - t0);
+      return result;
     },
-    [workerProxy, dispatchProgress],
+    [workerProxy, dispatchProgress, setPhaseTiming],
   );
 
   return { sanitize, dispatchProgress, isReady: !!workerProxy };

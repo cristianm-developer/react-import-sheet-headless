@@ -36,13 +36,13 @@ function App() {
 
 | Hook | Use for |
 |------|--------|
-| **`useImporter({ layout?, engine? })`** | **`processFile(file)`**, **`abort()`**, **`registerValidator`** / **`registerSanitizer`** / **`registerTransform`**. |
+| **`useImporter({ layout?, engine? })`** | **`processFile(file)`**, **`abort()`**, **`metrics`** (PipelineMetrics \| null), **`registerValidator`** / **`registerSanitizer`** / **`registerTransform`**. |
 | **`useImportSheet()`** | **`startFullImport()`** after preview. |
 | **`useConvert()`** | **`convert()`**, **`convertedSheet`**, **`convertResult`** (column mapping). |
 | **`useImporterStatus()`** | **`status`**, subscribe to progress (EventTarget: `importer-progress`, `importer-aborted`). |
 | **`useSheetData()`** | **`sheet`**, **`errors`** (for table rendering). |
 | **`useSheetEditor({ page?, pageSize?, debounceMs? })`** | **`sheet`**, **`editCell({ rowIndex, cellKey, value })`**, **`pageData`**, **`totalPages`**. |
-| **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Pagination, **filterMode** (all \| errors-only), **totalRows** / **getRows(offset, limit)** (virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **hasRecoverableSession** / **recoverSession** / **clearPersistedState** (when Provider has **persist={true}**). |
+| **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Pagination, **filterMode** (all \| errors-only), **totalRows** / **getRows(page, limit)** (page 1-based; virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **hasRecoverableSession** / **recoverSession** / **clearPersistedState** (when Provider has **persist={true}**). |
 
 ---
 
@@ -138,7 +138,7 @@ function toUpper(value: unknown, _cell: unknown, _row: unknown, _params?: Record
 
 - **`useSheetView({ page, defaultPageSize, filterMode? })`** composes the editor and adds:
   - **Pagination:** **`page`**, **`setPage`**, **`pageSize`**, **`getPaginatedResult(page?, pageSize?)`**, **`paginatedRows`**.
-  - **Virtualization:** **`totalRows`**, **`getRows(offset, limit)`** for virtual lists.
+  - **Virtualization:** **`totalRows`**, **`getRows(page, limit)`** (page 1-based) for virtual lists.
   - **Filter:** **`filterMode: 'all' | 'errors-only'`**; **`rowsWithErrors`**, **`counts`** (e.g. totalRows, rowsWithErrors, totalErrors).
   - **Export:** **`exportToCSV`** / **`exportToJSON`** (string), **`downloadCSV`** / **`downloadJSON`** (trigger download, BOM for CSV).
   - **Persist:** When **ImporterProvider** has **persist={true}**: **`hasRecoverableSession`**, **`recoverSession()`**, **`clearPersistedState()`** (IndexedDB, 7-day expiry). Show a “Continue?” prompt and call recover or clear.
@@ -156,6 +156,10 @@ function toUpper(value: unknown, _cell: unknown, _row: unknown, _params?: Record
 ### 4.2 Pipeline (fixed order)
 
 **Parser → Convert → Sanitizer → Validator → Transform.** Then optional Edit and View. Do not reorder or skip steps.
+
+### 4.3 Metrics (telemetry)
+
+After a full pipeline run (parse → … → transform), **`useImporter().metrics`** is set to **`PipelineMetrics`** (or **`null`** until the first successful run). It includes **`timings`** (parse, sanitize, validate, transform in ms), **`totalMs`**, **`isSlow`**, **`percentages`**, **`efficiency`** (ms/row), **`rowCount`**, and formatted strings (**`parseTime`**, **`totalTime`**, etc.).
 
 ---
 

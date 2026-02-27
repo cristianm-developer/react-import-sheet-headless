@@ -96,7 +96,7 @@ describe('useSheetView', () => {
     expect(screen.getByTestId('countsErrors')).toHaveTextContent('1');
   });
 
-  it('should expose getRows(offset, limit) for virtualization', () => {
+  it('should expose getRows(page, limit) for virtualization with 1-based page', () => {
     const rows: ValidatedRow[] = [
       { index: 0, errors: [], cells: [{ key: 'a', value: 1, errors: [] }] },
       { index: 1, errors: [], cells: [{ key: 'a', value: 2, errors: [] }] },
@@ -122,7 +122,7 @@ describe('useSheetView', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('sliceLen')).toHaveTextContent('2');
-    expect(screen.getByTestId('firstIndex')).toHaveTextContent('1');
+    expect(screen.getByTestId('firstIndex')).toHaveTextContent('0');
   });
 
   it('should expose hasRecoverableSession and no-op recover/clear when persist is false', () => {

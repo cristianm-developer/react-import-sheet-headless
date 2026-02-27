@@ -76,6 +76,40 @@ function ImporterUI() {
 
 For layout, custom validators, and step-by-step usage, see [How to / Usage](docs/how-to.md).
 
+### Virtualization (e.g. react-window)
+
+Use `totalRows` and `getRows(page, limit)` (page is 1-based) from `useSheetView()` to feed a virtual list without loading all rows into the DOM:
+
+```tsx
+import { FixedSizeList as List } from 'react-window';
+import { useSheetView } from '@cristianm/react-import-sheet-headless';
+
+function VirtualizedTable() {
+  const { getRows, totalRows } = useSheetView({ filterMode: 'all' });
+  const pageSize = 50;
+
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const page = Math.floor(index / pageSize) + 1;
+    const offset = index % pageSize;
+    const chunk = getRows(page, pageSize);
+    const row = chunk[offset];
+    return (
+      <div style={style}>
+        {row ? `Row ${row.index}: ${JSON.stringify(row.cells)}` : null}
+      </div>
+    );
+  };
+
+  return (
+    <List height={400} itemCount={totalRows} itemSize={32} width="100%">
+      {Row}
+    </List>
+  );
+}
+```
+
+**Persistence:** When using `persist={true}`, call **clearPersistedState()** (from **useSheetView**) after the user has successfully submitted the import to your server, so data is not left in IndexedDB indefinitely. See [View / Persist](docs/how-to-view.md).
+
 ## How to (usage)
 
 Step-by-step usage and recipes (handling large files, real-time errors, session recovery): **[How to / Usage](docs/how-to.md)**.

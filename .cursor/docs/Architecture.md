@@ -78,11 +78,11 @@ Hooks consume the Provider context and expose a clear, narrow API. This improves
 
 | Hook | Responsibility |
 |------|----------------|
-| **`useImporter({ layout, engine })`** | Entry point. Receives **layout** (optional) and **engine** (optional: `'xlsx' \| 'csv' \| 'auto'`; when omitted, decoding is automatic). Passes them to the Provider. Exposes **`processFile(file)`** (triggers the full pipeline via the Provider) and **`registerValidator`**, **`registerSanitizer`**, **`registerTransform`**, **`abort`**. |
+| **`useImporter({ layout, engine })`** | Entry point. Receives **layout** (optional) and **engine** (optional: `'xlsx' \| 'csv' \| 'auto'`; when omitted, decoding is automatic). Passes them to the Provider. Exposes **`processFile(file)`** (triggers the full pipeline via the Provider), **`metrics`** (PipelineMetrics \| null after a full run), **`registerValidator`**, **`registerSanitizer`**, **`registerTransform`**, **`abort`**. |
 | **`useImporterStatus()`** | Returns **status** (e.g. `idle`, `parsing`, `validating`, `success`, `error`) and a way to read **progress** (e.g. subscribe to EventTarget or a stable progress snapshot). For progress UI. |
 | **`useSheetData()`** | Returns the **result** (final sheet) and **errors** (from the sheet) for rendering the table. No knowledge of Workers. |
 | **`useSheetEditor()`** | Exposes **`editCell`** for the edit pipeline (scoped sanitize + validate + transform on a single cell). |
-| **`useSheetView()`** | Consumes result: paginated view, **filterMode** (all | errors-only), **totalRows** / **getRows** for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor. |
+| **`useSheetView()`** | Consumes result: paginated view, **filterMode** (all | errors-only), **totalRows** / **getRows(page, limit)** (page 1-based) for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor. |
 
 **Example flow**
 
@@ -299,7 +299,8 @@ src/
     raw-sheet.ts            # BaseSheet, RawSheet, RawSheetCell, RawSheetRow
     sheet.ts                # Sheet, ValidatedRow, ValidatedCell
     sheet-layout.ts         # SheetLayout, SheetLayoutField, SheetLayoutRef, ValidatorOrWithParams
-    importer-state.ts       # ImporterState, ImporterStatus, ImporterProgressDetail, event names
+    importer-state.ts       # ImporterState, ImporterStatus, ImporterProgressDetail, PipelinePhase, event names
+    metrics.ts              # PipelineMetrics, PipelineMetricsTimings, buildPipelineMetrics, SLOW_THRESHOLD_MS
     index.ts                # Barrel: re-export all shared types
   providers/                # Infrastructure: Provider (public) + Context and brain logic (internal). Not for direct user consumption.
     ImporterProvider.tsx    # Public: the component that wraps the app (exported from index.ts)
@@ -307,7 +308,7 @@ src/
     state.ts                # initialState
     types.ts                # ImporterContextValue, ImporterProviderProps, UseImporterStateSettersDeps, UseImporterActionsDeps
     useImporterStateSetters.ts  # state setters (setFile, setRawData, setLayout, …)
-    useImporterActions.ts   # actions (processFile, register*, abort, dispatchProgress, setActiveWorker)
+    useImporterActions.ts   # actions (processFile, register*, setPhaseTiming, finalizeMetrics, abort, dispatchProgress, setActiveWorker)
     useImporterContext.ts   # Internal: hook used by public hooks to read context (not exported)
     index.ts                # Barrel: re-export only ImporterProvider (and what it needs internally)
     ImporterProvider.test.tsx
@@ -327,6 +328,8 @@ src/
         csv-parser.ts
         normalize-cell.ts
       worker/               # parser.worker.ts (Comlink load + parseAll), worker-url.ts
+      utils/                # fuzzy header mapping (normalize, getSimilarity, mapHeaders)
+        fuzzy-match.ts
       hooks/
         useParserWorker.ts  # internal: creates worker, exposes load/parseAll
       adapter.ts            # parseSheet(blob, options): routes by extension/MIME
@@ -448,7 +451,7 @@ Each process has its own **context** and logic under **`core/`**:
 | **Validator** | `core/validator/`   | Take sanitizer output (or RawSheet) + `sheetLayout`, run cell → row → sheet validators in Worker, output **sheet** with errors (or errors/deltas for main to patch). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Transform** | `core/transform/`   | Take validated **sheet** + `sheetLayout`, run cell → row → sheet transforms in Worker (only where no errors). Output **sheet** with transformed values (or deltas). Updates provider; dispatches progress via **EventTarget**. Uses `utils/controller/[context]`. |
 | **Editor**  | `core/editor/`         | Expose result **sheet** and **editCell**. Run scoped validation + transform on edit in a **Web Worker** (runEditPipeline); update provider with new sheet. Paginated result (pageData, totalPages) as derived state; structural immutability for React.memo. |
-| **View**    | `core/view/`           | Consume result: **useSheetView** composes useSheetEditor; exposes paginated result, **filterMode** (all | errors-only), **totalRows** / **getRows(offset, limit)** for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), **persist** (IndexedDB, debounce, 7-day expiry, hasRecoverableSession, recoverSession, clearPersistedState). |
+| **View**    | `core/view/`           | Consume result: **useSheetView** composes useSheetEditor; exposes paginated result, **filterMode** (all | errors-only), **totalRows** / **getRows(page, limit)** (page 1-based) for virtualization, **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), **persist** (IndexedDB, debounce, 7-day expiry, hasRecoverableSession, recoverSession, clearPersistedState). |
 
 Contexts are **separated per process** (e.g. parser context, validator context, transform context, editor context or a unified importer context that composes them). The **ImporterProvider** (from Setting) is the **brain**: it holds **layout**, **file**, **status**, **result (sheet)**, **errors** (inside the sheet), **persist** / **persistKey**, and the **Worker** lifecycle; it exposes **processFile** (via `useImporter`), **editCell** (via `useSheetEditor`), and **persist** APIs (hasRecoverableSession, recoverSession, clearPersistedState) when **persist** is true. **Progress** is not in Context; it is emitted via **EventTarget** so only the progress UI re-renders (see *Provider as brain, Hooks as interface* and *Progress and re-renders: EventTarget*).
 
@@ -597,7 +600,7 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 5. **Validator (4):** Consumes sanitizer output + `sheetLayout`; runs validators in Worker: **sync** cell/row loop, then **async** table check (if any); produces **sheet** with errors (or errors/deltas); updates provider; dispatches progress via **EventTarget**. Table validators may be async (backend); Runner uses try/catch and AbortController for resilience. Implementations in `utils/controller/[context]`.
 6. **Transform (5):** Consumes validated **sheet** + `sheetLayout`; runs transforms in Worker (only where no errors): **sync** cell/row loop, then **async** table check (if any); produces final **sheet** (or deltas); updates provider; dispatches progress via **EventTarget**. Table transforms may be async; same resilience (try/catch, AbortController). Implementations in `utils/controller/[context]`.
 7. **Edit (6):** Provider exposes **result (sheet)** and **errors** (from sheet) and **editCell**. On edit, **runEditPipeline** runs in a **Web Worker** (edit.worker.ts): set cell value → cell validators (that cell) → row validators (that row) → sheet validators → cell/row/sheet transforms (safe-first). Editor reuses validator and transform runners in scope; **pageData** and **totalPages** are derived from sheet and page/pageSize; structural immutability for React.memo.
-8. **View (7):** **useSheetView** composes useSheetEditor; exposes **paginated result** (page, setPage, paginatedRows, getPaginatedResult), **filterMode** (all | errors-only) with memoized **rowsWithErrors** and **counts**, **totalRows** / **getRows(offset, limit)** for virtualization (e.g. react-window, @tanstack/react-virtual), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), and when **persist** is true: **hasRecoverableSession**, **recoverSession**, **clearPersistedState** (IndexedDB, debounce, 7-day expiry).
+8. **View (7):** **useSheetView** composes useSheetEditor; exposes **paginated result** (page, setPage, paginatedRows, getPaginatedResult), **filterMode** (all | errors-only) with memoized **rowsWithErrors** and **counts**, **totalRows** / **getRows(page, limit)** (page 1-based) for virtualization (e.g. react-window, @tanstack/react-virtual), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON** (BOM, revokeObjectURL), and when **persist** is true: **hasRecoverableSession**, **recoverSession**, **clearPersistedState** (IndexedDB, debounce, 7-day expiry).
 
 All of this is **headless**: the library provides state, result, errors, edit functions, and an **EventTarget** for progress so only the progress UI re-renders; the consumer builds the UI in English or any language.
 

@@ -25,6 +25,7 @@ export function useImporter(options: UseImporterOptions = {}) {
       registerSanitizer: ctx.registerSanitizer,
       registerTransform: ctx.registerTransform,
       abort: ctx.abort,
+      metrics: ctx.metrics,
     }),
     [
       ctx.processFile,
@@ -32,6 +33,7 @@ export function useImporter(options: UseImporterOptions = {}) {
       ctx.registerSanitizer,
       ctx.registerTransform,
       ctx.abort,
+      ctx.metrics,
     ],
   );
 }

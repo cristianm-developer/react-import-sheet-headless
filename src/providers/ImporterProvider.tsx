@@ -24,6 +24,12 @@ export function ImporterProvider({
   const sanitizerRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
   const transformRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
   const activeWorkerRef = useRef<Worker | null>(null);
+  const phaseTimingsRef = useRef({
+    parse: 0,
+    sanitize: 0,
+    validate: 0,
+    transform: 0,
+  });
 
   const stateSetters = useImporterStateSetters({ setState, setLayoutState, setEngineState });
   const persistSession = usePersistSession(
@@ -33,6 +39,7 @@ export function ImporterProvider({
     state.result,
     stateSetters.setRawData,
     stateSetters.setResult,
+    layout?.version ?? null,
   );
 
   const actions = useImporterActions({
@@ -44,6 +51,7 @@ export function ImporterProvider({
     sanitizerRegistry,
     transformRegistry,
     activeWorkerRef,
+    phaseTimingsRef,
   });
 
   useEffect(() => {

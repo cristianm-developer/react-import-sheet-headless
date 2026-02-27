@@ -43,7 +43,10 @@ export function useImportSheet() {
     const { file } = ctx;
     if (!file) return Promise.reject(new Error('No file loaded'));
     ctx.setStatus('loading');
+    const t0 = performance.now();
     return parseAll((detail) => ctx.dispatchProgress(detail)).then((result) => {
+      const t1 = performance.now();
+      ctx.setPhaseTiming('parse', t1 - t0);
       const first = firstSheetFromResult(result);
       if (!first) {
         ctx.setStatus('error');

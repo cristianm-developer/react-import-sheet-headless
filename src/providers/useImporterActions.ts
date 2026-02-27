@@ -1,12 +1,21 @@
 import { useCallback, useMemo } from 'react';
 import type { RegistryLevel } from '../shared/registry/index.js';
 import {
+  buildPipelineMetrics,
   IMPORTER_ABORTED_EVENT,
   IMPORTER_PROGRESS_EVENT,
   type ImporterProgressDetail,
+  type PipelinePhase,
 } from '../types/index.js';
 import type { ImporterContextValue, UseImporterActionsDeps } from './types.js';
 import { useImporterStateSetters } from './useImporterStateSetters.js';
+
+const INITIAL_PHASE_TIMINGS = {
+  parse: 0,
+  sanitize: 0,
+  validate: 0,
+  transform: 0,
+};
 
 export function useImporterActions(deps: UseImporterActionsDeps): Omit<
   ImporterContextValue,
@@ -21,6 +30,7 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
     sanitizerRegistry,
     transformRegistry,
     activeWorkerRef,
+    phaseTimingsRef,
   } = deps;
 
   const stateSetters = useImporterStateSetters({ setState, setLayoutState, setEngineState });
@@ -48,8 +58,22 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
     progressEventTarget.dispatchEvent(new CustomEvent(IMPORTER_ABORTED_EVENT));
   }, [activeWorkerRef, progressEventTarget, setState]);
 
+  const setPhaseTiming = useCallback((phase: PipelinePhase, ms: number) => {
+    phaseTimingsRef.current = { ...phaseTimingsRef.current, [phase]: ms };
+  }, [phaseTimingsRef]);
+
+  const finalizeMetrics = useCallback(
+    (rowCount: number) => {
+      const timings = { ...phaseTimingsRef.current };
+      const metrics = buildPipelineMetrics(timings, rowCount);
+      stateSetters.setMetrics(metrics);
+    },
+    [phaseTimingsRef, stateSetters],
+  );
+
   const processFile = useCallback(
     (file: File) => {
+      phaseTimingsRef.current = { ...INITIAL_PHASE_TIMINGS };
       setState((prev) => ({
         ...prev,
         file,
@@ -60,9 +84,10 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
         convertedSheet: null,
         sanitizedSheet: null,
         convertResultData: null,
+        metrics: null,
       }));
     },
-    [setState],
+    [phaseTimingsRef, setState],
   );
 
   const registerValidator = useCallback(
@@ -89,6 +114,8 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
   return useMemo(
     () => ({
       ...stateSetters,
+      setPhaseTiming,
+      finalizeMetrics,
       processFile,
       registerValidator,
       registerSanitizer,
@@ -99,6 +126,8 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
     }),
     [
       stateSetters,
+      setPhaseTiming,
+      finalizeMetrics,
       processFile,
       registerValidator,
       registerSanitizer,

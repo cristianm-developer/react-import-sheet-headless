@@ -2,7 +2,12 @@ import type { ReactNode } from 'react';
 import type { Registry } from '../shared/registry/index.js';
 import type { RegistryLevel } from '../shared/registry/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
-import type { ImporterState, ImporterStatus } from '../types/index.js';
+import type {
+  ImporterState,
+  ImporterStatus,
+  PipelineMetricsTimings,
+  PipelinePhase,
+} from '../types/index.js';
 import type { ImporterProgressDetail } from '../types/index.js';
 
 export interface ImporterContextValue {
@@ -14,6 +19,7 @@ export interface ImporterContextValue {
   readonly convertedSheet: ImporterState['convertedSheet'];
   readonly sanitizedSheet: ImporterState['sanitizedSheet'];
   readonly convertResultData: ImporterState['convertResultData'];
+  readonly metrics: ImporterState['metrics'];
   readonly layout: SheetLayout | null;
   readonly engine: ParserEngine | null;
   readonly progressEventTarget: EventTarget;
@@ -31,6 +37,9 @@ export interface ImporterContextValue {
       | ImporterState['convertResultData']
       | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData']),
   ) => void;
+  setMetrics: (metrics: ImporterState['metrics']) => void;
+  setPhaseTiming: (phase: PipelinePhase, ms: number) => void;
+  finalizeMetrics: (rowCount: number) => void;
   processFile: (file: File) => void;
   registerValidator: (
     name: string,
@@ -80,4 +89,5 @@ export interface UseImporterActionsDeps {
   sanitizerRegistry: Registry<(...args: unknown[]) => unknown>;
   transformRegistry: Registry<(...args: unknown[]) => unknown>;
   activeWorkerRef: React.MutableRefObject<Worker | null>;
+  phaseTimingsRef: React.MutableRefObject<PipelineMetricsTimings>;
 }

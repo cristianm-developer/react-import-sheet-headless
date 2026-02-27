@@ -23,7 +23,8 @@ type ValidatorWorkerApi = {
 };
 
 export function useValidatorWorker() {
-  const { setActiveWorker, dispatchProgress, setResult, layout } = useImporterContext();
+  const { setActiveWorker, dispatchProgress, setResult, layout, setPhaseTiming } =
+    useImporterContext();
   const [workerProxy, setWorkerProxy] = useState<Comlink.Remote<ValidatorWorkerApi> | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -62,7 +63,10 @@ export function useValidatorWorker() {
       onProgress?: (d: ImporterProgressDetail) => void,
     ): Promise<ValidatorDelta> => {
       if (!layout) throw new Error('Layout required for validation');
+      const t0 = performance.now();
       const delta = await validate(sanitizedSheet, layout, options, onProgress);
+      const t1 = performance.now();
+      setPhaseTiming('validate', t1 - t0);
       const initial = buildInitialSheet(sanitizedSheet, {
         name: layout.name,
         version: layout.version,
@@ -71,7 +75,7 @@ export function useValidatorWorker() {
       setResult(patched);
       return delta;
     },
-    [layout, validate, setResult],
+    [layout, validate, setResult, setPhaseTiming],
   );
 
   return { validate, validateAndApply, dispatchProgress, isReady: !!workerProxy };

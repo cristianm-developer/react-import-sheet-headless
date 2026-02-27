@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { ImporterState, ImporterStatus } from '../types/index.js';
+import type { PipelineMetrics } from '../types/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
 import type { ImporterContextValue, UseImporterStateSettersDeps } from './types.js';
 
@@ -17,6 +18,7 @@ export function useImporterStateSetters(
   | 'setConvertedSheet'
   | 'setSanitizedSheet'
   | 'setConvertResultData'
+  | 'setMetrics'
 > {
   const { setState, setLayoutState, setEngineState } = deps;
 
@@ -64,6 +66,10 @@ export function useImporterStateSetters(
     [setState],
   );
 
+  const setMetrics = useCallback((metrics: PipelineMetrics | null) => {
+    setState((prev) => ({ ...prev, metrics }));
+  }, [setState]);
+
   const setLayout = useCallback((next: SheetLayout | null) => {
     setLayoutState(next);
   }, [setLayoutState]);
@@ -83,5 +89,6 @@ export function useImporterStateSetters(
     setConvertedSheet,
     setSanitizedSheet,
     setConvertResultData,
+    setMetrics,
   };
 }

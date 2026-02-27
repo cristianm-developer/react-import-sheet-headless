@@ -12,7 +12,8 @@ export interface UseSheetViewReturn<TRow = ValidatedRow> {
   setPage: (page: number) => void;
   pageSize: number;
   totalRows: number;
-  getRows: (offset: number, limit: number) => TRow[];
+  /** 1-based page; returns slice for that page. */
+  getRows: (page: number, limit: number) => TRow[];
   rowsWithErrors: TRow[];
   counts: ViewCounts;
   editCell: (params: EditCellParams) => void | Promise<void>;

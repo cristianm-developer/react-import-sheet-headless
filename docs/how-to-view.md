@@ -23,7 +23,7 @@ view.pageSize;
 
 // Virtualization (e.g. react-window, @tanstack/react-virtual)
 view.totalRows;
-view.getRows(offset, limit);
+view.getRows(page, limit); // page is 1-based
 
 // Filter by errors
 view.rowsWithErrors;
@@ -55,7 +55,7 @@ view.clearPersistedState();
 ## Pagination and virtualization
 
 - **getPaginatedResult(page?, pageSize?)** returns `{ page, pageSize, totalCount, totalPages, rows }`. When **filterMode === 'errors-only'**, pagination is over **rowsWithErrors** (memoized).
-- **totalRows** is the length of the current view (all rows or rows with errors). Use it with **getRows(offset, limit)** to feed a virtual list (e.g. **@tanstack/react-virtual** or **react-window**) so you never render 50k+ rows at once.
+- **totalRows** is the length of the current view (all rows or rows with errors). Use it with **getRows(page, limit)** (page is **1-based**) to feed a virtual list (e.g. **@tanstack/react-virtual** or **react-window**) so you never render 50k+ rows at once.
 
 ## Export
 
@@ -67,6 +67,7 @@ view.clearPersistedState();
 When **ImporterProvider** is used with **persist={true}** (and optional **persistKey**):
 
 - State (rawData + sheet) is saved to IndexedDB with a **2–3 s debounce** after changes.
+- **Recommendation:** After the user successfully submits the imported data to your server, call **clearPersistedState()** so sensitive data is not left in IndexedDB indefinitely.
 - Sessions older than **7 days** are not recoverable (**hasRecoverableSession** is false).
 - On load, the app does **not** restore automatically; it exposes **hasRecoverableSession**. Show a prompt (“Continue where you left off?”) and call **recoverSession()** or **clearPersistedState()** as the user chooses.
 

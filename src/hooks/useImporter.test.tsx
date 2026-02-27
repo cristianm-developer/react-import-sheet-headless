@@ -14,7 +14,7 @@ describe('useImporter', () => {
     );
   });
 
-  it('should return processFile, registerValidator, registerSanitizer, registerTransform, and abort', () => {
+  it('should return processFile, registerValidator, registerSanitizer, registerTransform, abort, and metrics', () => {
     function Consumer() {
       const api = useImporter();
       return (
@@ -24,6 +24,7 @@ describe('useImporter', () => {
           <span data-testid="registerSanitizer">{String(typeof api.registerSanitizer === 'function')}</span>
           <span data-testid="registerTransform">{String(typeof api.registerTransform === 'function')}</span>
           <span data-testid="abort">{String(typeof api.abort === 'function')}</span>
+          <span data-testid="metrics">{String(api.metrics === null)}</span>
         </div>
       );
     }
@@ -37,6 +38,7 @@ describe('useImporter', () => {
     expect(screen.getByTestId('registerSanitizer')).toHaveTextContent('true');
     expect(screen.getByTestId('registerTransform')).toHaveTextContent('true');
     expect(screen.getByTestId('abort')).toHaveTextContent('true');
+    expect(screen.getByTestId('metrics')).toHaveTextContent('true');
   });
 
   it('should call setLayout when layout option is provided', () => {

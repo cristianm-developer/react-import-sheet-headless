@@ -1,5 +1,7 @@
 # How to use react-import-sheet-headless
 
+← [Back to README](../README.md)
+
 General setup, flow, and entry points. For topic-specific guides see the links below.
 
 ## Setup

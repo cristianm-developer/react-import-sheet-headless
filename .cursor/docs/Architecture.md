@@ -1,5 +1,7 @@
 # Architecture — react-import-sheet-headless
 
+**Executive summary for external implementers:** See **`ai-context.md`** at the repo root. It defines the public API surface, data contracts (SheetLayout, errors), pipeline order, safety rules, and public type surface. Use it when integrating this library in other projects; use this document for internal structure and flow.
+
 ## Anchors for AI updates (where to insert changes)
 
 When you change the project structure or flow, update this document in these places:

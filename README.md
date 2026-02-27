@@ -1,6 +1,8 @@
 # @cristianm/react-import-sheet-headless
 
-Headless React library for importing and validating sheet data (CSV, etc.). No UI—you build the UI; the library provides state, hooks, and pipeline (parse → convert → sanitize → validate → transform).
+Headless **React** library for **importing** and validating **Excel**/CSV sheet data. No built-in table UI—you bring your own components; the library provides the logic, **Web Worker** speed, and bulk validation.
+
+[![npm version](https://img.shields.io/npm/v/@cristianm/react-import-sheet-headless.svg)](https://www.npmjs.com/package/@cristianm/react-import-sheet-headless) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Installation
 
@@ -8,44 +10,101 @@ Headless React library for importing and validating sheet data (CSV, etc.). No U
 npm install @cristianm/react-import-sheet-headless
 ```
 
-Peer dependencies: `react` and `react-dom` (>=18).
+**Peer dependencies:** React 18+ (`react` and `react-dom`).
 
-## Usage
+## Why Headless
 
-Wrap your import flow with **ImporterProvider**. Use **useImporter** to pass a layout and get **processFile** and register APIs; **useImporterStatus** for status and progress; **useSheetData** for the result and errors; **useSheetEditor** for **editCell**.
+Bring your own components; we provide the logic, Web Worker performance, and bulk validation. No prebuilt `<Table />`—you own the UI and the UX.
+
+## Pipeline
+
+Data flows through a single pipeline. Heavy steps run in Web Workers so the main thread stays responsive.
+
+```mermaid
+flowchart LR
+  A[Input File] --> B[Parser Worker]
+  B --> C[Convert]
+  C --> D[Sanitizer Worker]
+  D --> E[Validator Worker]
+  E --> F[Transform Worker]
+  F --> G[Sheet + Errors]
+  G -.-> H[Edit optional]
+```
+
+**Order:** Input File → Parser (Worker) → Convert (main thread) → Sanitizer (Worker) → Validator (Worker) → Transform (Worker) → Result (sheet) + Errors. Optional: cell-level edit on the result.
+
+## Quick Start
+
+~10 lines to see the value: wrap with the provider, pick a file, read result and errors.
 
 ```tsx
-import {
-  ImporterProvider,
-  useImporter,
-  useImporterStatus,
-  useSheetData,
-  useSheetEditor,
-} from '@cristianm/react-import-sheet-headless';
+import { ImporterProvider, useImporter, useSheetView } from '@cristianm/react-import-sheet-headless';
 
-const layout = { name: 'my-sheet', version: 1, fields: {} };
+const myLayout = { name: 'my-sheet', version: 1, fields: {} };
 
 function App() {
   return (
     <ImporterProvider>
-      <UploadSection />
-      <TableSection />
+      <ImporterUI />
     </ImporterProvider>
   );
 }
 
-function UploadSection() {
-  const { processFile, registerValidator } = useImporter({ layout });
-  const { status } = useImporterStatus();
-  const handleFile = (file: File) => processFile(file);
-  return <input type="file" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />;
-}
+function ImporterUI() {
+  const { processFile } = useImporter({ layout: myLayout });
+  const { sheet, getPaginatedResult } = useSheetView({ defaultPageSize: 10 });
 
-function TableSection() {
-  const { sheet, errors } = useSheetData();
-  const { editCell } = useSheetEditor();
-  return (/* render table with sheet, errors; call editCell on edit */);
+  if (!sheet) {
+    return (
+      <input
+        type="file"
+        accept=".csv,.xlsx"
+        onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
+      />
+    );
+  }
+
+  const { rows } = getPaginatedResult(1, 10);
+  return (
+    <div>
+      <p>Rows: {sheet.rows.length} | Errors: {sheet.errors.length}</p>
+      {/* Your table component here, e.g. rows.map(...) */}
+    </div>
+  );
 }
 ```
 
-Progress is emitted via **EventTarget** (not in React state). Use **useImporterEventTarget** to subscribe to progress for a progress bar. See `.cursor/docs/Architecture.md` and `docs/how-to.md` (when present) for full API and pipeline details.
+For layout, custom validators, and step-by-step usage, see [How to / Usage](docs/how-to.md).
+
+## How to (usage)
+
+Step-by-step usage and recipes (handling large files, real-time errors, session recovery): **[How to / Usage](docs/how-to.md)**.
+
+Topic-specific guides: [Parser](docs/how-to-parser.md), [Convert](docs/how-to-convert.md), [Sanitizer](docs/how-to-sanitizer.md), [Validators](docs/how-to-validators.md), [Transformers](docs/how-to-transformers.md), [Edit](docs/how-to-edit.md), [View](docs/how-to-view.md).
+
+## Schema Docs
+
+The sheet layout (`SheetLayout`) defines validators and transformers by level (cell, row, sheet). Options and parameters are documented in:
+
+| Type            | Documentation |
+|-----------------|---------------|
+| Validators      | [Validators reference](docs/validators.md) |
+| Transformers    | [Transformers reference](docs/transformers.md) |
+
+**By level:**
+
+- **Validators:** cell (per field), row, sheet — see [docs/validators.md](docs/validators.md).
+- **Transformers:** cell, row, sheet — see [docs/transformers.md](docs/transformers.md).
+
+To add or use controller modules (validators, sanitizers, transforms by context): [Controllers](src/utils/controller/README.md).
+
+## Contributing
+
+- **Conventional Commits:** This project uses [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.). PRs that do not follow this convention may be asked to amend their commit messages.
+- **Tests required:** All contributions must pass the test suite. Run `npm run test` before opening a PR. Vitest is used; coverage is maintained. Pre-push hooks may run tests.
+
+## License and links
+
+- **License:** [MIT](https://opensource.org/licenses/MIT)
+- **Repository:** (add your repo URL)
+- **Documentation:** [docs/](docs/)

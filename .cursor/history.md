@@ -10,6 +10,30 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-27 — Construction Step 10 (Readme) executed
+
+**What changed:** **(1)** Main **README.md** rewritten per step 10: title and description with SEO keywords (React, Headless, Import, Excel, Web Worker); Installation (npm + peer deps); "Why Headless" section; Mermaid pipeline diagram (Input → Parser → Convert → Sanitizer → Validator → Transform → Sheet + Errors); Quick Start (~10 lines with ImporterProvider, useImporter, useSheetView, processFile, getPaginatedResult); How to (link to docs/how-to.md and topic guides); Schema Docs (summary tables + links to docs/validators.md, docs/transformers.md, and src/utils/controller/README.md); Contributing (Conventional Commits, Vitest, tests required); License and links. **(2)** **docs/validators.md** and **docs/transformers.md** added with compatibility tables (Validator/Transformer | Level | Params | Example) and "Back to README" links. **(3)** **src/utils/controller/README.md** added: organization of validators/sanitizers/transforms, execution order (cell → row → sheet), naming ({level}-{context}-{type}.ts), how to implement, list of controllers (required, string), link to Architecture. **(4)** **docs/how-to.md** given a "Back to README" link at the top.
+
+**Why:** Fulfil Construction Step 10 — professional README as package landing page, distributed docs (validators/transformers reference, controller README), one-click navigation from docs to README, and clear contribution rules.
+
+**Affected files:** README.md, docs/validators.md (new), docs/transformers.md (new), docs/how-to.md, src/utils/controller/README.md (new), .cursor/history.md.
+
+### 2026-02-27 — ai-context.md reframed as implementation guide for external projects
+
+**What changed:** **`ai-context.md`** was rewritten to act as a **condensed implementation guide** for an external AI (or developer) integrating the library in another project. It now includes: **(1)** Integrating the headless (setup, flow: processFile → convert → Sanitizer/Validator/Transform, hooks table). **(2)** Implementing controllers (validators, sanitizers, transforms): registry and layout (ids, type: cell|row|table), validator/sanitizer/transform signatures and examples (required, trim, toUpperCase), and controller rules (pure, Worker-safe, sync cell/row, params only). **(3)** Consuming results (sheet and errors, editCell, useSheetView: pagination, filter, export, persist). **(4)** Data contracts summary and pipeline order. **(5)** Safety and barrel contract. References to how-to docs kept at the end.
+
+**Why:** The file must work as the single document an external IA reads to know how to implement the headless, implement controllers, and consume results in their project.
+
+**Affected files:** ai-context.md, .cursor/history.md.
+
+### 2026-02-27 — ai-context.md and documentation links
+
+**What changed:** **(1)** Created root **`ai-context.md`** as a "Guide for AI Agents" and single reference for external implementers. It defines: Public API Surface (ImporterProvider, useImporter, useImporterStatus, useSheetData, useSheetEditor, useSheetView and flow hooks); Data Contracts (SheetLayout, SheetLayoutField, ValidatorOrWithParams; SheetError and sheet/row/cell errors); Pipeline order (Parser → Convert → Sanitizer → Validator → Transform); Safety warnings (no heavy logic on main thread, pure/Worker-safe validators and transforms, cell/row sync only table async, registry by id, errors as code+params); Public type surface (barrel as single source of truth, omit internal types). **(2)** In **`.cursor/rules/typescript-standards.mdc`** §6 added item 4: whenever a public Hook, public data type, or pipeline logic in core is changed, **`ai-context.md`** must be updated. **(3)** In **`.cursor/docs/Architecture.md`** added at the top a reference to **`ai-context.md`** as the executive summary for external implementers.
+
+**Why:** Give external AIs and implementers a single, hierarchy-clear document that describes only the external contract (no internal implementation). Keep the contract in sync via the new rule.
+
+**Affected files:** ai-context.md (new), .cursor/rules/typescript-standards.mdc, .cursor/docs/Architecture.md, .cursor/history.md.
+
 ### 2026-02-27 — Construction Step 9 (View) implemented
 
 **What changed:** Implemented the View step. **(1) Types:** `core/view/types/` — UseSheetViewOptions, UseSheetViewReturn, ViewFilterMode, ExportOptions, ViewCounts, PersistedState, PERSIST_SESSION_MAX_AGE_MS, DEFAULT_PERSIST_KEY. **(2) View helpers:** getRowsWithErrors(sheet), getViewCounts(sheet); getPaginatedResultFromRows(rows, page, pageSize) in editor. **(3) Export:** sheetToCSV (BOM, escape, layout order), sheetToJSON in core/view/export/; tests for BOM, headers, separator, escape. **(4) Persist:** core/view/persist/indexed-db.ts (savePersistedState, loadPersistedState, clearPersistedState) with 7-day expiry; tests with fake-indexeddb. **(5) Provider:** persist, persistKey props; usePersistSession (debounce 2.5s, hasRecoverableSession, recoverSession, clearPersistedState); context exposes persist APIs. **(6) useSheetView:** composes useSheetEditor; page/setPage/pageSize, filterMode (all | errors-only), rowsWithErrors (useMemo), counts, totalRows, getRows(offset, limit), getPaginatedResult, exportToCSV/exportToJSON, downloadCSV/downloadJSON (revokeObjectURL), hasRecoverableSession, recoverSession, clearPersistedState. **(7) Tests:** getRowsWithErrors, getViewCounts, getPaginatedResultFromRows, sheetToCSV, sheetToJSON, persist (indexed-db), useSheetView (pagination, filterMode, getRows, export, setPage, hasRecoverableSession). **(8) Docs:** docs/how-to-view.md, docs/how-to.md (useSheetView in hooks table and See also); Architecture (View module, folder tree, flow step 8, persist, useSheetView). Coverage: usePersistSession excluded; branch threshold set to 75%.

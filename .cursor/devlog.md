@@ -23,6 +23,14 @@ _(Add new entries at the top, most recent first.)_
 
 <!-- DEVLOG_ENTRIES -->
 
+### 2026-02-27 — Construction Step 10 (Readme) completed
+
+**Feature / area:** README and distributed docs per Construction Step 10. Main README as package landing: title, SEO description (React, Headless, Import, Excel, Web Worker), Installation, "Why Headless", Mermaid pipeline diagram, Quick Start (~10 lines), How to link, Schema Docs (summary + links), Contributing (Conventional Commits, Vitest required), License. Reference docs: docs/validators.md and docs/transformers.md with compatibility tables and back-to-README; src/utils/controller/README.md for controller organization, execution order, naming, and implementation; docs/how-to.md given back-to-README link.
+
+**Global state changes:** New/updated docs only; no code or exports changed.
+
+**Technical decisions:** Schema Docs in README only list concepts and link to docs/validators.md and docs/transformers.md (no full validator/transformer docs in README). Controller README links to Architecture for folder structure and flow. Quick Start uses ImporterProvider, useImporter, useSheetView, processFile, getPaginatedResult so it stays headless and minimal.
+
 ### 2026-02-27 — Construction Step 7 (Transform) completed
 
 **Feature / area:** Transform step implemented: runs cell → row → sheet transforms in a Web Worker over validated Sheet; returns only a delta of value changes (and optional sheet errors from async table transforms); main thread applies delta via applyTransformDelta and merges sheet errors into result.

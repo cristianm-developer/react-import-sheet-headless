@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Registry } from '../shared/registry/index.js';
 import type { RegistryLevel } from '../shared/registry/index.js';
-import type { SheetLayout } from '../types/index.js';
+import type { ParserEngine, SheetLayout } from '../types/index.js';
 import type { ImporterState, ImporterStatus } from '../types/index.js';
 import type { ImporterProgressDetail } from '../types/index.js';
 
@@ -12,8 +12,10 @@ export interface ImporterContextValue {
   readonly status: ImporterStatus;
   readonly result: ImporterState['result'];
   readonly layout: SheetLayout | null;
+  readonly engine: ParserEngine | null;
   readonly progressEventTarget: EventTarget;
   setLayout: (layout: SheetLayout | null) => void;
+  setEngine: (engine: ParserEngine | null) => void;
   setFile: (file: File | null) => void;
   setRawData: (rawData: ImporterState['rawData']) => void;
   setDocumentHash: (documentHash: string | null) => void;
@@ -43,16 +45,19 @@ export interface ImporterContextValue {
 export interface ImporterProviderProps {
   children: ReactNode;
   layout?: SheetLayout | null;
+  engine?: ParserEngine | null;
 }
 
 export interface UseImporterStateSettersDeps {
   setState: React.Dispatch<React.SetStateAction<ImporterState>>;
   setLayoutState: React.Dispatch<React.SetStateAction<SheetLayout | null>>;
+  setEngineState: React.Dispatch<React.SetStateAction<ParserEngine | null>>;
 }
 
 export interface UseImporterActionsDeps {
   setState: React.Dispatch<React.SetStateAction<ImporterState>>;
   setLayoutState: React.Dispatch<React.SetStateAction<SheetLayout | null>>;
+  setEngineState: React.Dispatch<React.SetStateAction<ParserEngine | null>>;
   progressEventTarget: EventTarget;
   validatorRegistry: Registry<(...args: unknown[]) => unknown>;
   sanitizerRegistry: Registry<(...args: unknown[]) => unknown>;

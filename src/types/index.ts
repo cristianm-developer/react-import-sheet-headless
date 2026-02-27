@@ -1,8 +1,11 @@
 export type { SheetError, SheetErrorLevel } from './error.js';
+export type { ParserEngine } from './parser-engine.js';
 export type {
   BaseSheet,
+  RawParseResult,
   RawSheet,
   RawSheetCell,
+  RawSheetCellValue,
   RawSheetRow,
 } from './raw-sheet.js';
 export type { Sheet, ValidatedCell, ValidatedRow } from './sheet.js';

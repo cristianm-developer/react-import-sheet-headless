@@ -3,6 +3,7 @@ export { ImporterProvider as ImportProvider } from './providers/index.js';
 export type { ImporterProviderProps } from './providers/index.js';
 export {
   useImporter,
+  useImportSheet,
   useImporterStatus,
   useSheetData,
   useSheetEditor,
@@ -21,6 +22,7 @@ export type {
   BaseSheet,
   FieldInputType,
   FieldValueType,
+  ParserEngine,
   Sheet,
   SheetError,
   SheetErrorLevel,
@@ -32,8 +34,10 @@ export type {
   ValidatorOrWithParams,
 } from './types/index.js';
 export type {
+  RawParseResult,
   RawSheet,
   RawSheetCell,
+  RawSheetCellValue,
   RawSheetRow,
 } from './types/index.js';
 export { Registry } from './shared/registry/index.js';

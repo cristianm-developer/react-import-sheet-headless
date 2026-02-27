@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
 import type { ImporterState, ImporterStatus } from '../types/index.js';
-import type { SheetLayout } from '../types/index.js';
+import type { ParserEngine, SheetLayout } from '../types/index.js';
 import type { ImporterContextValue, UseImporterStateSettersDeps } from './types.js';
 
 export function useImporterStateSetters(
   deps: UseImporterStateSettersDeps,
 ): Pick<
   ImporterContextValue,
-  'setLayout' | 'setFile' | 'setRawData' | 'setDocumentHash' | 'setStatus' | 'setResult'
+  'setLayout' | 'setEngine' | 'setFile' | 'setRawData' | 'setDocumentHash' | 'setStatus' | 'setResult'
 > {
-  const { setState, setLayoutState } = deps;
+  const { setState, setLayoutState, setEngineState } = deps;
 
   const setFile = useCallback((file: File | null) => {
     setState((prev) => ({ ...prev, file }));
@@ -35,8 +35,13 @@ export function useImporterStateSetters(
     setLayoutState(next);
   }, [setLayoutState]);
 
+  const setEngine = useCallback((next: ParserEngine | null) => {
+    setEngineState(next);
+  }, [setEngineState]);
+
   return {
     setLayout,
+    setEngine,
     setFile,
     setRawData,
     setDocumentHash,

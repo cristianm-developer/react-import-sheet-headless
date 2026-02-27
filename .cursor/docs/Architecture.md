@@ -18,8 +18,11 @@ When you change the project structure or flow, update this document in these pla
 | **Sync vs async (cell/row sync, only table async) or table resilience** | **"Design principles"** → **Data flow** (Sync Row Loop → Async Table Check). **"Utils"** → **Sync vs async** and **Resilience for async table**. **6. Validator**, **7. Transform**: pipeline phases, try/catch, EXTERNAL_* codes, AbortController for fetch. |
 | **Backward compatibility (API, types, layout)** | **"Product architecture"** → **Backward compatibility**: compatibility layer, reuse vs new structure, deprecation. |
 | **Public vs internal (what to export)** | **"Public API vs internal (infrastructure)"**: what lives in providers/, what is re-exported from index.ts; update table and Barrels if the public surface changes. |
+| **User-facing usage (how to use a feature)** | **How-to is split by context:** **(1)** **`docs/how-to.md`** — general usage (setup, flow, Provider, hooks, pipeline). **(2)** **`docs/how-to-<context>.md`** — one file per specific topic (e.g. `how-to-validators.md`, `how-to-layout.md`, `how-to-transformers.md`). When adding/changing a user-facing feature: update the general how-to if the overall flow changes; create or update the **context-specific** how-to for that feature. Internal/implementation-only changes do not require how-to updates. See `.cursor/rules/typescript-standards.mdc` §6 (Documentation Synchronization). |
+| **Coverage target or test exclusions** | **"Tests"** section: coverage target (e.g. 90%), exclusions (workers, async hooks without testable logic), and rule that any testable logic must be isolated and tested. Align with `.cursor/rules/typescript-standards.mdc` §3. |
+| **New how-to context** (e.g. new feature area) | Create **`docs/how-to-<context>.md`** for that topic; keep **`docs/how-to.md`** for general usage only. Link from general how-to or README if needed. See **"How-to documentation structure"** under Public API vs internal. |
 
-Keep this document the single source of truth for structure and flow. See also `.cursor/rules/typescript-standards.mdc` §5 (Documentation Synchronization).
+Keep this document the single source of truth for structure and flow. See also `.cursor/rules/typescript-standards.mdc` §6 (Documentation Synchronization).
 
 ---
 
@@ -49,11 +52,18 @@ Keep this document the single source of truth for structure and flow. See also `
 
 For a pipeline-based headless import library, the **Provider** and **Hooks** work together: the Provider is the **single source of truth** (the "brain"); the Hooks are the **interface** for the consumer (the "nerves"). State is **not** stored in Zustand or any external store; the Provider holds state in React state and uses the browser’s **EventTarget** for high-frequency updates (progress). No Zustand.
 
+**Entry hook parameters (what the user passes)**
+
+The hook that the consumer instantiates to use the library (**`useImporter`**) **must expose as parameters**:
+
+- **`layout`** (optional): **SheetLayout** — column definitions, validators, sanitizers, transforms. Passed into the Provider and used by Convert, Sanitizer, Validator, Transform. Can also be set via the Provider’s initial `layout` prop.
+- **`engine`** (optional): **ParserEngine** — `'xlsx' | 'csv' | 'auto'`. Which engine to use to decode the uploaded file. When **omitted or `'auto'`**, the parser **automatically** detects format from file extension or MIME. When set to **`'xlsx'`** or **`'csv'`**, that engine is used directly (useful for misnamed files or when extension is missing). Can also be set via the Provider’s initial `engine` prop.
+
 **Provider: the brain (Single Source of Truth)**
 
 The Provider wraps the section of the app where import happens. It:
 
-- **Holds layout:** The **SheetLayout** is provided by the consumer via **`useImporter({ layout })`**; the hook passes it into the Provider so the Provider stores it. Optional: Provider can also accept an initial `layout` prop. Layout is the single source for rules (validators, sanitizers, transforms).
+- **Holds layout and engine:** The **SheetLayout** and **ParserEngine** are provided by the consumer via **`useImporter({ layout, engine })`** (or initial Provider props). The hook passes them into the Provider so the Provider stores them. Layout is the single source for rules (validators, sanitizers, transforms); engine is used by the Parser to decode the file (or auto-detect when `'auto'`/omitted).
 - **Holds file and state:** `file`, `rawData`, `documentHash`, `status`, `result` (sheet). So when the user navigates between UI steps (e.g. "Carga" → "Mapeo" → "Validación"), file and progress are not lost; no prop drilling — any child uses hooks to read.
 - **Manages Workers:** Initializes Worker instances **once** (e.g. in `useEffect`), keeps Comlink proxies; orchestrates Parse → Convert → Sanitize → Validate → Transform. Can enforce **finite states** (e.g. do not run validation if parsing has not finished).
 - **Progress via EventTarget:** Progress is **not** in Context. A single **EventTarget** dispatches **`importer-progress`** (and **`importer-aborted`** on cancel/unmount). Only the progress UI subscribes; the rest of the tree does not re-render. See *Progress and re-renders: EventTarget* below.
@@ -66,7 +76,7 @@ Hooks consume the Provider context and expose a clear, narrow API. This improves
 
 | Hook | Responsibility |
 |------|----------------|
-| **`useImporter({ layout })`** | Entry point. Receives **layout**; passes it to the Provider. Exposes **`processFile(file)`** (triggers the full pipeline via the Provider) and **`registerValidator`**, **`registerSanitizer`**, **`registerTransform`**, **`abort`**. |
+| **`useImporter({ layout, engine })`** | Entry point. Receives **layout** (optional) and **engine** (optional: `'xlsx' \| 'csv' \| 'auto'`; when omitted, decoding is automatic). Passes them to the Provider. Exposes **`processFile(file)`** (triggers the full pipeline via the Provider) and **`registerValidator`**, **`registerSanitizer`**, **`registerTransform`**, **`abort`**. |
 | **`useImporterStatus()`** | Returns **status** (e.g. `idle`, `parsing`, `validating`, `success`, `error`) and a way to read **progress** (e.g. subscribe to EventTarget or a stable progress snapshot). For progress UI. |
 | **`useSheetData()`** | Returns the **result** (final sheet) and **errors** (from the sheet) for rendering the table. No knowledge of Workers. |
 | **`useSheetEditor()`** | Exposes **`editCell`** for the edit pipeline (scoped sanitize + validate + transform on a single cell). |
@@ -86,8 +96,11 @@ function App() {
   );
 }
 
-// Action: entry hook receives layout and exposes processFile
-const { processFile, registerValidator } = useImporter({ layout: myLayoutConfig });
+// Action: entry hook receives layout and optional engine; exposes processFile
+const { processFile, registerValidator } = useImporter({
+  layout: myLayoutConfig,
+  engine: 'auto', // optional: 'xlsx' | 'csv' | 'auto'; omit for automatic detection
+});
 const handleUpload = (file: File) => processFile(file);
 
 // Status and progress (e.g. for progress bar)
@@ -222,6 +235,13 @@ As the library grows, the key to a professional NPM-style library is to **separa
 
 **Barrel (`src/index.ts`):** This file is the single control point for the public API. It exports only: the Provider, the public hooks, and the public types. It must **not** export the Context instance, internal hooks, or internal modules. That way the project can be organized freely under `src/` while the consumer sees a clean, minimal surface.
 
+**User-facing usage (how-to docs):** How-to is **split by context**. **`docs/how-to.md`** describes **general usage** (setup, flow, Provider, hooks, pipeline). **Context-specific** topics use **one file each**: `docs/how-to-<context>.md` (e.g. `how-to-validators.md`, `how-to-layout.md`, `how-to-transformers.md`). When adding or changing a user-facing feature: update the general how-to if it affects the overall flow; create or update the **context-specific** how-to file for that feature (setup, options, examples). Internal or implementation-only changes do not require how-to updates. This keeps the library discoverable without reading source; see the anchors table and `.cursor/rules/typescript-standards.mdc` §6.
+
+**How-to documentation structure:**
+
+- **`docs/how-to.md`** — General usage only: setup, Provider, hooks, end-to-end flow, entry points. No deep dives per topic.
+- **`docs/how-to-<context>.md`** — One file per specific context (e.g. validators, transformers, layout, register APIs, progress, edit). Each file covers setup, options, and examples for that topic. Create a new file when a new user-facing context deserves its own guide.
+
 ---
 
 ## Product architecture (publishing & consumption)
@@ -259,7 +279,7 @@ When adding or changing features, the library must not break existing consumers.
 - **Avoid breaking changes:** Do not remove or rename public types, hook signatures, provider props, or layout shapes in a way that forces immediate, irreparable breakage. Prefer **extending** (new optional fields, overloads) over replacing.
 - **Reuse when possible:** Reuse existing structures (e.g. same `SheetLayout` shape, same error shape) and evolve them in a backward-compatible way. New behaviour can be gated by new optional options or a version field.
 - **Compatibility layer when reuse is not possible:** If a new design cannot reuse the old structure, implement a **normalization step** that detects the old format (e.g. by checking for legacy fields, missing new fields, or a layout version) and converts it internally to the new format. Code that still passes the old shape continues to work without changes.
-- **Deprecation before removal:** Before removing a deprecated API or structure, document it as deprecated (in `docs/how-to.md` and types/comments if needed), and optionally log a one-time dev warning. Plan and document a migration path and a minimum support period so consumers can migrate.
+- **Deprecation before removal:** Before removing a deprecated API or structure, document it as deprecated in the relevant docs (`docs/how-to.md` or the context-specific `docs/how-to-<context>.md`) and in types/comments if needed, and optionally log a one-time dev warning. Plan and document a migration path and a minimum support period so consumers can migrate.
 
 This is also reflected in `.cursor/rules/typescript-standards.mdc` (§11 Backward Compatibility).
 
@@ -295,14 +315,19 @@ src/
       index.ts
   core/                     # Process-specific modules; each has its own context
     parser/
-      types/                # Process-specific: RawSheet, RawSheetRow, RawSheetCell, worker messages
-        rawSheet.ts
+      types/                # ParseOptions, ParserMeta
+        parse-options.ts
+        parser-meta.ts
         index.ts
+      engines/              # xlsx (SheetJS), csv (Papa Parse), normalize-cell
+        xlsx-parser.ts
+        csv-parser.ts
+        normalize-cell.ts
+      worker/               # parser.worker.ts (Comlink load + parseAll), worker-url.ts
       hooks/
-        useParserWorker.ts
-        usePreview.ts
-        useImportSheet.ts
-      ...                   # adapter, parsers/, worker/
+        useParserWorker.ts  # internal: creates worker, exposes load/parseAll
+      adapter.ts            # parseSheet(blob, options): routes by extension/MIME
+      hash.ts               # streamHashHex(blob) for documentHash
       index.ts
     convert/
       types/                # ConvertedSheet, ColumnMismatch, ConvertSuccess, ConvertResult
@@ -342,6 +367,7 @@ src/
   hooks/                    # Public hooks (cross-process or app-level)
     types.ts                # UseImporterOptions and other hook option/contract types
     useImporter.ts          # useImporter({ layout }): processFile, register*, abort
+    useImportSheet.ts       # useImportSheet(): startFullImport; triggers parser load on processFile
     useImporterStatus.ts    # status, progressEventTarget
     useSheetData.ts         # sheet, errors
     useSheetEditor.ts       # editCell (stub until Step 8)
@@ -538,6 +564,8 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 
 - **Tests sit next to the code they cover:** e.g. `*.test.ts` / `*.spec.ts` beside the corresponding `.ts` or `.tsx` file (e.g. `run-validation.ts` and `run-validation.test.ts` in the same folder).
 - No separate "tests only" tree; colocation keeps tests easy to find and refactor.
+- **Coverage target:** **90%** (see `.cursor/rules/typescript-standards.mdc` §3). New features and changes must not lower the threshold.
+- **Coverage exclusions:** **(1)** **Workers** (`*.worker.ts`) may be excluded from coverage. **(2)** **Async hooks** that depend only on external agents or external events and have **no explicit logic** to test (e.g. thin wrappers around Comlink/Worker or event subscriptions) may be excluded. **(3)** Whenever a hook or worker **contains testable logic** (state derivation, error mapping, branching), that logic **must** be tested—by **isolating** it into a pure function or testable unit and covering it with unit tests.
 - Run with **Vitest**; success criteria for each Construction Step are described in the corresponding doc (1. PackageSetting, 2. Setting, 3. Parser, 4. Convert, 5. Sanitizer, 6. Validator, 7. Transform, 8. Edit, 9. View, 10. Readme, 11. Telemetry).
 
 ---

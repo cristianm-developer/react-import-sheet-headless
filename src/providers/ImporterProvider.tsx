@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Registry } from '../shared/registry/index.js';
-import type { SheetLayout } from '../types/index.js';
+import type { ParserEngine, SheetLayout } from '../types/index.js';
 import { ImporterContext } from './ImporterContext.js';
 import { initialState } from './state.js';
 import type { ImporterContextValue, ImporterProviderProps } from './types.js';
 import { useImporterActions } from './useImporterActions.js';
-
-export function ImporterProvider({ children, layout: layoutProp }: ImporterProviderProps) {
+export function ImporterProvider({ children, layout: layoutProp, engine: engineProp }: ImporterProviderProps) {
   const [state, setState] = useState(initialState);
   const [layout, setLayoutState] = useState<SheetLayout | null>(layoutProp ?? null);
+  const [engine, setEngineState] = useState<ParserEngine | null>(engineProp ?? null);
   const progressEventTarget = useMemo(() => new EventTarget(), []);
   const validatorRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
   const sanitizerRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
@@ -18,6 +18,7 @@ export function ImporterProvider({ children, layout: layoutProp }: ImporterProvi
   const actions = useImporterActions({
     setState,
     setLayoutState,
+    setEngineState,
     progressEventTarget,
     validatorRegistry,
     sanitizerRegistry,
@@ -39,10 +40,11 @@ export function ImporterProvider({ children, layout: layoutProp }: ImporterProvi
     () => ({
       ...state,
       layout,
+      engine,
       progressEventTarget,
       ...actions,
     }),
-    [state, layout, progressEventTarget, actions],
+    [state, layout, engine, progressEventTarget, actions],
   );
 
   return (

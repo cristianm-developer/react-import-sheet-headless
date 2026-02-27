@@ -262,8 +262,8 @@ describe('useImporterContext', () => {
     function Consumer() {
       const ctx = useImporterContext();
       const keys = [
-        'file', 'rawData', 'documentHash', 'status', 'result', 'layout',
-        'progressEventTarget', 'setLayout', 'setFile', 'setRawData', 'setDocumentHash',
+        'file', 'rawData', 'documentHash', 'status', 'result', 'layout', 'engine',
+        'progressEventTarget', 'setLayout', 'setEngine', 'setFile', 'setRawData', 'setDocumentHash',
         'setStatus', 'setResult', 'processFile', 'registerValidator', 'registerSanitizer',
         'registerTransform', 'abort', 'dispatchProgress', 'setActiveWorker',
       ];
@@ -282,6 +282,7 @@ describe('useImporterContext', () => {
     const rawSheet = {
       name: 'x',
       filesize: 0,
+      documentHash: 'hash-sheet',
       headers: ['a'],
       rows: [{ index: 0, cells: [{ key: 'a', value: 1 }] }],
     };
@@ -332,6 +333,29 @@ describe('useImporterContext', () => {
     expect(screen.getByTestId('layout')).toHaveTextContent('null');
     fireEvent.click(screen.getByRole('button', { name: 'setLayout' }));
     expect(screen.getByTestId('layout')).toHaveTextContent('custom');
+  });
+
+  it('should update engine when setEngine is called', () => {
+    function Consumer() {
+      const ctx = useImporterContext();
+      return (
+        <div>
+          <span data-testid="engine">{ctx.engine ?? 'null'}</span>
+          <button type="button" onClick={() => ctx.setEngine('csv')}>setCsv</button>
+          <button type="button" onClick={() => ctx.setEngine('xlsx')}>setXlsx</button>
+        </div>
+      );
+    }
+    render(
+      <ImporterProvider>
+        <Consumer />
+      </ImporterProvider>,
+    );
+    expect(screen.getByTestId('engine')).toHaveTextContent('null');
+    fireEvent.click(screen.getByRole('button', { name: 'setCsv' }));
+    expect(screen.getByTestId('engine')).toHaveTextContent('csv');
+    fireEvent.click(screen.getByRole('button', { name: 'setXlsx' }));
+    expect(screen.getByTestId('engine')).toHaveTextContent('xlsx');
   });
 });
 
@@ -543,6 +567,19 @@ describe('processFile and layout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'process' }));
     expect(screen.getByTestId('status')).toHaveTextContent('loading');
     expect(screen.getByTestId('file')).toHaveTextContent('data.csv');
+  });
+
+  it('should accept initial engine prop', () => {
+    function Consumer() {
+      const ctx = useImporterContext();
+      return <span data-testid="engine">{ctx.engine ?? 'null'}</span>;
+    }
+    render(
+      <ImporterProvider engine="csv">
+        <Consumer />
+      </ImporterProvider>,
+    );
+    expect(screen.getByTestId('engine')).toHaveTextContent('csv');
   });
 
   it('should accept initial layout prop', () => {

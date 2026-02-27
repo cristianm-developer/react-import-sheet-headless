@@ -10,6 +10,51 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-27 — How-to docs updated per context: general + how-to-parser
+
+**What changed:** Applied the how-to split-by-context rule. **(1)** **`docs/how-to.md`** — Reduced to general usage only: setup (Provider, useImporter with layout/engine), table of hooks and their role, one-paragraph flow (processFile → preview → startFullImport), and "See also" links to context-specific guides. **(2)** **`docs/how-to-parser.md`** — New: parser/import context (supported formats, engine option, preview vs full import, RawParseResult/RawSheet types, progress and abort). Content aligned with Construction Step 3 (Parser) and entry hook params (layout + engine) from history.
+
+**Why:** Align docs with Architecture and typescript-standards: one general how-to plus one file per specific topic.
+
+**Affected files:** `docs/how-to.md`, `docs/how-to-parser.md`, `.cursor/history.md`.
+
+### 2026-02-27 — How-to docs split by context: general + one file per topic
+
+**What changed:** (1) **Rule (`.cursor/rules/typescript-standards.mdc` §6):** User-facing how-to is now **split by context**: **`docs/how-to.md`** for general usage (setup, flow, Provider, hooks, pipeline); **`docs/how-to-<context>.md`** (e.g. `how-to-validators.md`, `how-to-layout.md`) for each specific topic. When adding/changing a feature, update the general how-to if the overall flow changes, and create or update the context-specific how-to for that feature. §12 deprecation wording updated to refer to the relevant docs (general or context-specific). (2) **Architecture (`.cursor/docs/Architecture.md`):** Anchors table and Public API section updated to describe the split; new **"How-to documentation structure"** subsection (general vs context-specific files); new anchor row for "New how-to context".
+
+**Why:** Keep how-to maintainable and scannable: one general guide plus one file per specific capability so users find only what they need.
+
+**Affected files:** `.cursor/rules/typescript-standards.mdc`, `.cursor/docs/Architecture.md`, `.cursor/history.md`.
+
+### 2026-02-27 — Entry hook params: layout + engine (ParserEngine); Architecture and project updated
+
+**What changed:** (1) **Architecture.md:** Documented that the hook the user instantiates (**`useImporter`**) must expose as parameters **layout** (optional) and **engine** (optional: `'xlsx' | 'csv' | 'auto'`; when omitted, decoding is automatic). (2) **ParserEngine type:** Added `src/types/parser-engine.ts` (`'xlsx' | 'csv' | 'auto'`), exported from types and main index. (3) **UseImporterOptions:** Added **engine**; **ImporterProviderProps** and context value: **engine**, **setEngine**; Provider holds engine state and passes setEngineState to actions. (4) **Parser:** ParseOptions and adapter accept **engine**; when set to `'xlsx'` or `'csv'`, that engine is used; when `'auto'` or omitted, detection by extension/MIME. (5) **useImportSheet:** Passes `ctx.engine` into `load(file, { ..., engine })`. (6) **Tests:** ImporterProvider (engine/setEngine, initial engine prop), useImporter (engine option), adapter (engine 'csv' / 'xlsx'). (7) **docs/how-to.md:** Updated setup to document layout and engine parameters.
+
+**Why:** Let the consumer choose the decoding engine (e.g. for misnamed or extensionless files) and document the entry hook contract in Architecture.
+
+**Affected files:** `src/types/parser-engine.ts`, `src/types/index.ts`, `src/index.ts`, `src/hooks/types.ts`, `useImporter.ts`, `src/providers/types.ts`, `useImporterStateSetters.ts`, `useImporterActions.ts`, `ImporterProvider.tsx`, `src/core/parser/types/parse-options.ts`, `adapter.ts`, `src/hooks/useImportSheet.ts`, provider/useImporter/adapter tests, `docs/how-to.md`, `.cursor/docs/Architecture.md`.
+
+### 2026-02-27 — Coverage 90%; exclusions for workers and async hooks without testable logic
+
+**What changed:** (1) **Rule (`.cursor/rules/typescript-standards.mdc` §3):** Coverage target lowered from 95% to **90%**. New bullet **Coverage exclusions:** Workers (`*.worker.ts`) and async hooks that depend only on external agents/events and have no explicit logic to test may be excluded; any testable logic inside such code must be isolated and tested. (2) **Architecture (`.cursor/docs/Architecture.md`):** Tests section updated with coverage target 90%, same exclusions (workers, async hooks without testable logic), and rule that testable logic must be isolated and covered. Anchors table: new row for "Coverage target or test exclusions".
+
+**Why:** Reduce coverage pressure on Worker and thin async hooks while keeping a clear rule: isolate and test any logic that can be tested.
+
+**Affected files:** `.cursor/rules/typescript-standards.mdc`, `.cursor/docs/Architecture.md`, `.cursor/history.md`.
+
+### 2026-02-27 — Construction Step 3 (Parser) implemented
+
+**What changed:** Implemented the Parser step. (1) **Types:** Added `RawSheetCellValue`, `documentHash` on `BaseSheet`, and `RawParseResult` (with optional `parserMeta`) in `src/types/raw-sheet.ts`; exported from types and main index. (2) **Engines:** `core/parser/engines/` — `xlsx-parser.ts` (SheetJS), `csv-parser.ts` (Papa Parse with `delimiterOverride`/`encodingOverride`, `parserMeta`), `normalize-cell.ts` for `RawSheetCellValue`. (3) **Adapter:** `core/parser/adapter.ts` — `parseSheet(blob, options)` routes by extension/MIME to XLSX or CSV; uses `streamHashHex` (js-sha256 in chunks) for `documentHash`. (4) **Worker:** `core/parser/worker/parser.worker.ts` — Comlink API `load(blob, options)` (preview, stores blob) and `parseAll(onProgress?)`; lifecycle and `abort()` via `setActiveWorker`. (5) **Hooks:** `core/parser/hooks/useParserWorker.ts` (internal) creates worker, exposes `load`/`parseAll`/`isReady`; `src/hooks/useImportSheet.ts` (public) runs `load` when `processFile(file)` sets state, exposes `startFullImport()`. (6) **Build:** tsup entry `parser.worker` outputs `dist/parser.worker.js`. (7) **Tests:** Unit tests for normalize-cell, hash, xlsx-parser, csv-parser, adapter, worker-url, useParserWorker (outside provider), useImportSheet (mocked worker). Coverage exclusions for `parser.worker.ts`, `useParserWorker.ts`, `useImportSheet.ts`; branch threshold 82% (parser branches).
+
+**Why:** Fulfil Construction Step 3 — universal parser (xlsx/xls/ods/csv) in Worker, two-phase load + parseAll, documentHash by streaming, integration with Setting (`rawData`, `status`), progress via EventTarget.
+
+**Affected files:**
+- `src/types/raw-sheet.ts`, `src/types/index.ts`, `src/index.ts` — RawSheetCellValue, documentHash, RawParseResult, parserMeta; exports.
+- New: `src/core/parser/` (types/, engines/, worker/, hooks/, adapter.ts, hash.ts), `src/hooks/useImportSheet.ts`.
+- `src/providers/ImporterProvider.test.tsx`, `src/hooks/useSheetData.test.tsx` — documentHash in mock RawSheet/Sheet.
+- `tsup.config.ts` — worker entry; `vitest.config.ts` — coverage exclusions, branch threshold 82.
+- `package.json` — dependencies xlsx, papaparse, comlink, js-sha256, @types/papaparse.
+
 ### 2026-02-27 — Structure applied: ImporterContext → providers/, barrel cleanup
 
 **What changed:** Applied the providers layout in code. (1) **Created `src/providers/`** with: `ImporterContext.ts` (context definition, from `contextInstance.ts`), `state.ts`, `types.ts`, `useImporterStateSetters.ts`, `useImporterActions.ts`, `useImporterContext.ts`, `ImporterProvider.tsx` (from `Provider.tsx`), `index.ts` (exports ImporterProvider, useImporterContext, ImporterContextValue, ImporterProviderProps), `ImporterProvider.test.tsx` (from `ImporterContext.test.tsx`). (2) **Removed `src/ImporterContext/`** (all files deleted). (3) **`src/index.ts`**: now imports from `./providers/index.js`; exports **only** `ImporterProvider`, `ImportProvider` alias, and `ImporterProviderProps` from providers; **no** longer exports `useImporterContext` or `ImporterContextValue`. (4) **Hooks** (`useImporter`, `useImporterStatus`, `useSheetData`, `useSheetEditor`, `useImporterEventTarget`): import `useImporterContext` from `../providers/index.js`. (5) **Hook tests**: import `ImporterProvider` and `useImporterContext` from `../providers/index.js`. (6) **Provider test**: lives in `src/providers/ImporterProvider.test.tsx`; imports provider/context from `./index.js`, public hooks from `../index.js`.

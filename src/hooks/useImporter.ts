@@ -4,13 +4,19 @@ import type { UseImporterOptions } from './types.js';
 
 export function useImporter(options: UseImporterOptions = {}) {
   const ctx = useImporterContext();
-  const { layout: layoutOption } = options;
+  const { layout: layoutOption, engine: engineOption } = options;
 
   useEffect(() => {
     if (layoutOption !== undefined) {
       ctx.setLayout(layoutOption);
     }
   }, [ctx, layoutOption]);
+
+  useEffect(() => {
+    if (engineOption !== undefined) {
+      ctx.setEngine(engineOption);
+    }
+  }, [ctx, engineOption]);
 
   return useMemo(
     () => ({

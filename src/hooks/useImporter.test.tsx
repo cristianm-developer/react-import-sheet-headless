@@ -54,6 +54,20 @@ describe('useImporter', () => {
     expect(screen.getByTestId('layoutName')).toHaveTextContent('my-layout');
   });
 
+  it('should call setEngine when engine option is provided', () => {
+    function Consumer() {
+      useImporter({ engine: 'csv' });
+      const ctx = useImporterContext();
+      return <span data-testid="engine">{ctx.engine ?? 'null'}</span>;
+    }
+    render(
+      <ImporterProvider>
+        <Consumer />
+      </ImporterProvider>,
+    );
+    expect(screen.getByTestId('engine')).toHaveTextContent('csv');
+  });
+
   it('should update provider state when processFile is called', () => {
     function Consumer() {
       const { processFile } = useImporter();

@@ -8,6 +8,7 @@ function createMockSheet(errors: Sheet['errors'] = []): Sheet {
   return {
     name: 'test',
     filesize: 0,
+    documentHash: 'mock-hash',
     headers: [],
     rows: [],
     sheetLayout: { name: 'layout', version: 1 },

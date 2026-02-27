@@ -10,11 +10,12 @@ import { useImporterStateSetters } from './useImporterStateSetters.js';
 
 export function useImporterActions(deps: UseImporterActionsDeps): Omit<
   ImporterContextValue,
-  'file' | 'rawData' | 'documentHash' | 'status' | 'result' | 'layout' | 'progressEventTarget'
+  'file' | 'rawData' | 'documentHash' | 'status' | 'result' | 'layout' | 'engine' | 'progressEventTarget'
 > {
   const {
     setState,
     setLayoutState,
+    setEngineState,
     progressEventTarget,
     validatorRegistry,
     sanitizerRegistry,
@@ -22,7 +23,7 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
     activeWorkerRef,
   } = deps;
 
-  const stateSetters = useImporterStateSetters({ setState, setLayoutState });
+  const stateSetters = useImporterStateSetters({ setState, setLayoutState, setEngineState });
 
   const dispatchProgress = useCallback(
     (detail: ImporterProgressDetail) => {

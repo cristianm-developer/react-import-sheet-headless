@@ -11,6 +11,7 @@ import {
   ImporterProvider,
   useImporter,
   useImportSheet,
+  useConvert,
   useImporterStatus,
   useSheetData,
 } from '@cristianm/react-import-sheet-headless';
@@ -61,13 +62,15 @@ function UploadAndImport() {
 |------|------|
 | **`useImporter({ layout?, engine? })`** | Entry: `processFile(file)`, `abort()`, register APIs for validators/sanitizers/transforms. |
 | **`useImportSheet()`** | After preview: `startFullImport()` to parse the full file. |
+| **`useConvert()`** | After raw data is set: `convert()` to align headers to layout; returns `convertedSheet` or `convertResult` (reorder/rename/applyMapping). |
 | **`useImporterStatus()`** | `status` and progress (subscribe to EventTarget for `importer-progress` / `importer-aborted`). |
 | **`useSheetData()`** | Result `sheet` and `errors` for the table. |
 | **`useSheetEditor()`** | `editCell` for the edit pipeline (when implemented). |
 
-**Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → progress and result available via hooks and EventTarget.
+**Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → progress and result available via hooks and EventTarget.
 
 ## See also
 
 - [How to: Parser and file import](how-to-parser.md) — Supported formats, engine option, preview vs full import, types, progress and abort.
+- [How to: Column mapping (Convert)](how-to-convert.md) — Align file headers to layout, reorder/rename columns, applyMapping.
 - Context-specific guides (e.g. `how-to-validators.md`, `how-to-layout.md`) are added as those features are documented.

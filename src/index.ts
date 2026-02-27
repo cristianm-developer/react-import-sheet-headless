@@ -4,6 +4,7 @@ export type { ImporterProviderProps } from './providers/index.js';
 export {
   useImporter,
   useImportSheet,
+  useConvert,
   useImporterStatus,
   useSheetData,
   useSheetEditor,
@@ -40,5 +41,15 @@ export type {
   RawSheetCellValue,
   RawSheetRow,
 } from './types/index.js';
+export type {
+  ColumnMismatch,
+  ConvertedSheet,
+  ConvertMismatchData,
+  ConvertOptions,
+  ConvertResult,
+  ConvertResultApplyResult,
+  ConvertSuccess,
+} from './core/convert/index.js';
+export type { ConvertResultData } from './types/index.js';
 export { Registry } from './shared/registry/index.js';
 export type { RegistryEntry, RegistryLevel } from './shared/registry/index.js';

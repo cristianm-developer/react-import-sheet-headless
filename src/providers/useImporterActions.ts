@@ -57,6 +57,8 @@ export function useImporterActions(deps: UseImporterActionsDeps): Omit<
         rawData: null,
         documentHash: null,
         result: null,
+        convertedSheet: null,
+        convertResultData: null,
       }));
     },
     [setState],

@@ -7,7 +7,15 @@ export function useImporterStateSetters(
   deps: UseImporterStateSettersDeps,
 ): Pick<
   ImporterContextValue,
-  'setLayout' | 'setEngine' | 'setFile' | 'setRawData' | 'setDocumentHash' | 'setStatus' | 'setResult'
+  | 'setLayout'
+  | 'setEngine'
+  | 'setFile'
+  | 'setRawData'
+  | 'setDocumentHash'
+  | 'setStatus'
+  | 'setResult'
+  | 'setConvertedSheet'
+  | 'setConvertResultData'
 > {
   const { setState, setLayoutState, setEngineState } = deps;
 
@@ -31,6 +39,26 @@ export function useImporterStateSetters(
     setState((prev) => ({ ...prev, result }));
   }, [setState]);
 
+  const setConvertedSheet = useCallback((convertedSheet: ImporterState['convertedSheet']) => {
+    setState((prev) => ({ ...prev, convertedSheet, convertResultData: null }));
+  }, [setState]);
+
+  const setConvertResultData = useCallback(
+    (
+      dataOrUpdater:
+        | ImporterState['convertResultData']
+        | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData']),
+    ) => {
+      setState((prev) => ({
+        ...prev,
+        convertResultData:
+          typeof dataOrUpdater === 'function' ? dataOrUpdater(prev.convertResultData) : dataOrUpdater,
+        convertedSheet: typeof dataOrUpdater === 'function' ? prev.convertedSheet : null,
+      }));
+    },
+    [setState],
+  );
+
   const setLayout = useCallback((next: SheetLayout | null) => {
     setLayoutState(next);
   }, [setLayoutState]);
@@ -47,5 +75,7 @@ export function useImporterStateSetters(
     setDocumentHash,
     setStatus,
     setResult,
+    setConvertedSheet,
+    setConvertResultData,
   };
 }

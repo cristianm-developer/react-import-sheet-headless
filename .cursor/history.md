@@ -10,6 +10,14 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-27 — Construction Step 4 (Convert) implemented
+
+**What changed:** Implemented the Convert step. **(1) Types:** `core/convert/types/` — ConvertedSheet, ColumnMismatch, ConvertSuccess, ConvertMismatchData, ConvertResult, ConvertOptions, ConvertResultApplyResult; ConvertResultData in `src/types/importer-state.ts`. **(2) Core logic:** `matchHeadersToLayout` (layout fields vs file headers, optional headerToFieldMap, case-sensitive option), `buildConvertedSheet` (rows keyed by layout field names, columnOrder), `runConvert` (returns ConvertSuccess or ConvertMismatchData; accepts existing columnOrder/headerToFieldMap). **(3) State:** ImporterState and Provider now hold `convertedSheet` and `convertResultData`; setters setConvertedSheet, setConvertResultData (with updater support for reorder/rename); processFile resets convert state. **(4) Hook:** `useConvert()` in `core/convert/hooks/useConvert.ts` — convert(options), convertedSheet, convertResult (reorderColumns, renameColumn, applyMapping); re-exported from `src/hooks/useConvert.ts` and main index. **(5) Tests:** match-headers.test.ts, build-converted-sheet.test.ts, run-convert.test.ts, useConvert.test.tsx (initial state, success path, mismatch path, rename + applyMapping). **(6) Docs:** `docs/how-to-convert.md`, how-to.md updated (flow, hooks table, useConvert); Architecture.md (useConvert in public hooks).
+
+**Why:** Fulfil Construction Step 4 — Convert aligns RawSheet + sheetLayout; on fit outputs ConvertedSheet; on mismatch outputs ConvertResult with correction APIs; pipeline Parser → Convert → Sanitizer.
+
+**Affected files:** `src/core/convert/` (types/, match-headers.ts, build-converted-sheet.ts, run-convert.ts, hooks/useConvert.ts, index.ts), `src/types/importer-state.ts`, `src/providers/state.ts`, `src/providers/types.ts`, `src/providers/useImporterStateSetters.ts`, `src/providers/useImporterActions.ts`, `src/hooks/useConvert.ts`, `src/hooks/index.ts`, `src/types/index.ts`, `src/index.ts`, `docs/how-to.md`, `docs/how-to-convert.md`, `.cursor/docs/Architecture.md`, `.cursor/history.md`.
+
 ### 2026-02-27 — How-to docs updated per context: general + how-to-parser
 
 **What changed:** Applied the how-to split-by-context rule. **(1)** **`docs/how-to.md`** — Reduced to general usage only: setup (Provider, useImporter with layout/engine), table of hooks and their role, one-paragraph flow (processFile → preview → startFullImport), and "See also" links to context-specific guides. **(2)** **`docs/how-to-parser.md`** — New: parser/import context (supported formats, engine option, preview vs full import, RawParseResult/RawSheet types, progress and abort). Content aligned with Construction Step 3 (Parser) and entry hook params (layout + engine) from history.

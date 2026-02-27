@@ -17,10 +17,10 @@ export type {
   FieldInputType,
   ValidatorOrWithParams,
 } from './sheet-layout.js';
-export {
-  IMPORTER_ABORTED_EVENT,
-  IMPORTER_PROGRESS_EVENT,
-  type ImporterProgressDetail,
-  type ImporterState,
-  type ImporterStatus,
+export { IMPORTER_ABORTED_EVENT, IMPORTER_PROGRESS_EVENT } from './importer-state.js';
+export type {
+  ConvertResultData,
+  ImporterProgressDetail,
+  ImporterState,
+  ImporterStatus,
 } from './importer-state.js';

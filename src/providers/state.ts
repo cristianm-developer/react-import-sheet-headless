@@ -6,4 +6,6 @@ export const initialState: ImporterState = {
   documentHash: null,
   status: 'idle',
   result: null,
+  convertedSheet: null,
+  convertResultData: null,
 };

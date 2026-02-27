@@ -11,6 +11,8 @@ export interface ImporterContextValue {
   readonly documentHash: string | null;
   readonly status: ImporterStatus;
   readonly result: ImporterState['result'];
+  readonly convertedSheet: ImporterState['convertedSheet'];
+  readonly convertResultData: ImporterState['convertResultData'];
   readonly layout: SheetLayout | null;
   readonly engine: ParserEngine | null;
   readonly progressEventTarget: EventTarget;
@@ -21,6 +23,12 @@ export interface ImporterContextValue {
   setDocumentHash: (documentHash: string | null) => void;
   setStatus: (status: ImporterStatus) => void;
   setResult: (result: ImporterState['result']) => void;
+  setConvertedSheet: (sheet: ImporterState['convertedSheet']) => void;
+  setConvertResultData: (
+    data:
+      | ImporterState['convertResultData']
+      | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData']),
+  ) => void;
   processFile: (file: File) => void;
   registerValidator: (
     name: string,

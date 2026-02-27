@@ -523,8 +523,9 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 
 ### Hooks
 
-- **Public API (consumer-facing):** All live in **`src/hooks/`** and are the **only** hooks re-exported from **`src/index.ts`** (see *Public API vs internal*). The library exposes **four specialized hooks** that consume the Provider context (see *Provider as brain, Hooks as interface*):
+- **Public API (consumer-facing):** All live in **`src/hooks/`** and are the **only** hooks re-exported from **`src/index.ts`** (see *Public API vs internal*). The library exposes **five specialized hooks** that consume the Provider context (see *Provider as brain, Hooks as interface*):
   - **`useImporter({ layout })`** — entry point; receives layout, exposes **`processFile(file)`**, `registerValidator`, `registerSanitizer`, `registerTransform`, `abort`.
+  - **`useConvert()`** — after raw data is set: **`convert()`** to align file headers to layout; returns **`convertedSheet`** or **`convertResult`** (headersFound, mismatches, reorderColumns, renameColumn, applyMapping).
   - **`useImporterStatus()`** — returns status and progress (EventTarget subscription or snapshot); for progress UI.
   - **`useSheetData()`** — returns result (sheet) and errors; for table rendering.
   - **`useSheetEditor()`** — returns **`editCell`**; for the edit pipeline.

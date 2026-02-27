@@ -23,6 +23,16 @@ _(Add new entries at the top, most recent first.)_
 
 <!-- DEVLOG_ENTRIES -->
 
+### 2026-02-27 — Construction Step 4 (Convert) completed
+
+**Feature / area:** Convert step implemented: align RawSheet + sheetLayout to produce ConvertedSheet (fit) or ConvertResult (mismatch with reorderColumns, renameColumn, applyMapping). Runs on main thread.
+
+**Global state changes:**
+- New `src/core/convert/` (types/, match-headers.ts, build-converted-sheet.ts, run-convert.ts, hooks/useConvert.ts, index.ts). ImporterState extended with `convertedSheet` and `convertResultData`; Provider and context expose them and setConvertedSheet/setConvertResultData. processFile resets convert state.
+- Public hook **useConvert()** re-exported from src/hooks and main index; types ConvertedSheet, ConvertResult, ColumnMismatch, etc. exported.
+
+**Technical decisions:** Header matching is case-insensitive by default (ConvertOptions.caseSensitive, normalizer). headerToFieldMap and columnOrder live in provider state; reorderColumns/renameColumn use functional setState so applyMapping sees latest map. ConvertResult.applyMapping() runs runConvert with current state and returns ConvertResultApplyResult; state is updated in the same call so UI re-renders with convertedSheet or updated convertResult.
+
 ### 2026-02-27 — ImporterContext refactor for 120-line rule
 
 **Feature / area:** Refactored single-file `ImporterContext.tsx` (220 lines) into `src/ImporterContext/` folder: state.ts, types.ts, contextInstance.ts, useImporterStateSetters.ts, useImporterActions.ts, Provider.tsx, useImporterContext.ts, index.ts. Test file moved into folder; all hook imports updated to `ImporterContext/index.js`.

@@ -78,6 +78,7 @@ function myRequired(value: unknown, _row: unknown, _params?: Record<string, unkn
 ### 2.3 Sanitizers
 
 - **Purpose:** Normalize or clean values (trim, cast, discard row). Do not add errors; return the (possibly modified) cell/row/sheet.
+- **Add your own or use built-in:** Register custom sanitizers with **`registerSanitizer(id, fn, { type })`**, or register the library’s built-in ones (e.g. **`registerTrimSanitizer(registerSanitizer)`**) and use their id (e.g. **`'trim'`**) in the layout. Same pattern as validators and transforms.
 - **Cell sanitizer:** receives **cell** (key + value), **row**, **params?**; returns the **cell** (same shape, possibly new value).
 - **Row sanitizer:** receives row (and context); return **null** to **discard** that row, or the row otherwise.
 - **Table sanitizer:** runs once; returns the (possibly modified) sheet.
@@ -174,5 +175,6 @@ After a full pipeline run (parse → … → transform), **`useImporter().metric
 
 - **Architecture and flow:** `.cursor/docs/Architecture.md`
 - **Per-topic how-to:** `docs/how-to.md`, `docs/how-to-validators.md`, `docs/how-to-sanitizer.md`, `docs/how-to-transformers.md`, `docs/how-to-convert.md`, `docs/how-to-parser.md`, `docs/how-to-edit.md`, `docs/how-to-view.md`
+- **Controller reference tables:** `docs/validators.md`, `docs/sanitizers.md`, `docs/transformers.md`
 
 When you change a **public hook**, a **data type** in the external API, or **pipeline behaviour** in core, update this file so the implementation guide stays accurate for external projects.

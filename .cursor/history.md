@@ -10,6 +10,14 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-27 — Sanitizer docs aligned with validators and transformers
+
+**What changed:** **(1)** Created **`docs/sanitizers.md`** as the sanitizers reference (compatibility table, layout fields, link to how-to), matching the structure of `docs/validators.md` and `docs/transformers.md`. **(2)** Updated **`docs/how-to-sanitizer.md`** to mirror the validators/transformers how-to: layout configuration (fields[].sanitizers, rowSanitizers, sheetSanitizers), explicit section **"Adding your own vs using built-in"** (register custom with registerSanitizer, or register predefined e.g. registerTrimSanitizer(registerSanitizer) and use id in layout), and reference to the new sanitizers.md. **(3)** **README.md** Schema Docs: added Sanitizers row and "By level" bullet so validators, sanitizers, and transformers are documented equally. **(4)** **ai-context.md**: under Sanitizers added that users can add their own or use built-in (same pattern as validators/transforms); added controller reference links (validators.md, sanitizers.md, transformers.md).
+
+**Why:** Sanitizers should work and be documented like validators and transformers: users can add the sanitizers they need or register the library’s predefined ones via the registry; each has a how-to and a reference doc.
+
+**Affected files:** docs/sanitizers.md (new), docs/how-to-sanitizer.md, README.md, ai-context.md, .cursor/history.md.
+
 ### 2026-02-27 — Construction Step 11 (Telemetry & world-class features) executed
 
 **What changed:** **(1) Part A — Telemetry:** Added **`src/types/metrics.ts`** with `PipelineMetricsTimings`, `PipelineMetricsPercentages`, `PipelineMetrics`, `buildPipelineMetrics()`, `SLOW_THRESHOLD_MS`. **ImporterState** and Provider now have **`metrics: PipelineMetrics | null`**; **`setPhaseTiming(phase, ms)`** and **`finalizeMetrics(rowCount)`** in context. Main-thread wall-clock timing: **useImportSheet** (parse), **useSanitizerWorker** (sanitize), **useValidatorWorker** (validate), **useTransformWorker** (transform + finalizeMetrics). **useImporter()** exposes **`metrics`**. **(2) Part C — Virtualization:** **getRows(page, limit)** in useSheetView is now **1-based page**; README added a "Virtualization (e.g. react-window)" example with **getRows** and **totalRows**. **(3) Part B — Fuzzy header mapping:** **`src/core/parser/utils/fuzzy-match.ts`** with **`normalize()`** (trim, lowerCase, NFD no accents), **`getSimilarity()`** (Levenshtein 0–1), **`mapHeaders(rawHeaders, expectedKeys, options?)`** (greedy by score, threshold 0.8). **(4) Part D — Persistence:** **PersistedState** extended with **`layoutVersion`** and **`stateSchemaVersion`**; **usePersistSession** saves/checks layout version and does not restore when version mismatch; README and **docs/how-to-view.md** recommend calling **clearPersistedState()** after successful server submit.

@@ -118,16 +118,18 @@ Topic-specific guides: [Parser](docs/how-to-parser.md), [Convert](docs/how-to-co
 
 ## Schema Docs
 
-The sheet layout (`SheetLayout`) defines validators and transformers by level (cell, row, sheet). Options and parameters are documented in:
+The sheet layout (`SheetLayout`) defines validators, sanitizers, and transformers by level (cell, row, sheet). Options and parameters are documented in:
 
 | Type            | Documentation |
 |-----------------|---------------|
 | Validators      | [Validators reference](docs/validators.md) |
+| Sanitizers      | [Sanitizers reference](docs/sanitizers.md) |
 | Transformers    | [Transformers reference](docs/transformers.md) |
 
 **By level:**
 
 - **Validators:** cell (per field), row, sheet — see [docs/validators.md](docs/validators.md).
+- **Sanitizers:** cell, row, sheet — see [docs/sanitizers.md](docs/sanitizers.md).
 - **Transformers:** cell, row, sheet — see [docs/transformers.md](docs/transformers.md).
 
 To add or use controller modules (validators, sanitizers, transforms by context): [Controllers](src/utils/controller/README.md).

@@ -20,18 +20,27 @@ alwaysApply: true
 
 ## 3. Testing & Reliability
 
-- **Colocated Tests:** Every source file must have a `.test.ts(x)` file in the same folder.
+- **Unit Tests Required:** All logical and functional units must be covered by unit tests: **hooks**, **contexts**, **services**, **pure functions**, and any export that contains executable logic. No new source file that implements behaviour may be added without a corresponding test file.
+- **Colocated Tests:** Every source file must have a `.test.ts(x)` file in the **same folder**, placed **side by side** with the source (e.g. `useImporter.ts` → `useImporter.test.ts`). Tests are created **in parallel** to the implementation: when adding or changing a module, add or update the test file in the same step.
+- **Run and Satisfy:** After writing or updating tests, **run the test suite** (e.g. `npm test` or `npx vitest run`) and ensure all tests **pass**. Consider the task complete only when the intended assertions are green and the suite is satisfied.
 - **Vitest:** Use Vitest for all unit and integration tests.
 - **Test Descriptions:** Use natural-language, descriptive test descriptions (e.g. `it('should return a delta of errors instead of the whole sheet', ...)`) so Vitest output doubles as technical documentation.
-- **Coverage:** Ensure new features maintain or improve the 80% coverage threshold.
+- **Coverage:** Maintain coverage **above 95%**. Always aim for unit test coverage for all code; new features and changes must not lower the threshold.
+- **Coverage-first:** Prefer unit tests for every logical unit; run coverage (e.g. `npx vitest run --coverage`) and add or adjust tests until the 95% target is met.
 
-## 4. Architecture & Structure
+## 4. File Size & Modularity
+
+- **Max 120 lines per file:** Source files (excluding tests) must not exceed **120 lines**. If a file grows beyond this, refactor before adding more logic.
+- **Split by context:** When a file exceeds 120 lines, create a **folder** for that module (e.g. `useImporter/` with `index.ts`, `state.ts`, `actions.ts`) and split the file into smaller files by **related context** (state, actions, selectors, types, etc.) so each file stays short and easy to read.
+- **Single responsibility:** Each resulting file should have a clear, narrow responsibility. Keep the public API in an `index.ts` (or main barrel) that re-exports from the split files.
+
+## 5. Architecture & Structure
 
 - **Reference Docs:** Always read `.cursor/docs/Architecture.md` before creating new modules.
 - **Folder Pattern:** Follow `core/<process>/[types|hooks|worker]`.
 - **Pipeline Order:** Parser → Convert → Sanitizer → Validator → Transform → View.
 
-## 5. Rule: Documentation Synchronization (Auto-Registry) — Golden Rule
+## 6. Rule: Documentation Synchronization (Auto-Registry) — Golden Rule
 
 This rule is **mandatory** at the end of every task. The AI must perform a **documentation phase** after implementing any feature, hook, utility, or type.
 
@@ -82,37 +91,37 @@ Do not only change Architecture; every planning or step-building session that af
 
 When continuing work (e.g. after opening Cursor or a new sprint), the user may run the **sync prompt** so the AI loads current context before taking new tasks. The prompt and instructions are in **`.cursor/docs/sync-prompt.md`**. The AI should respond by summarizing the project state (from Architecture.md and the latest devlog/history entries) and proposing the next logical step from the construction plan.
 
-## 6. Performance & State (Context & Reference Stability)
+## 7. Performance & State (Context & Reference Stability)
 
 - **Immutability:** All state updates in the Provider and Hooks must be immutable. Use functional updates for React state to avoid stale closures.
 - **Context stability (Provider and Hooks):** When generating Hooks or Providers, **every function returned must be wrapped in `useCallback`**. All **derived data or slices of state** must be wrapped in **`useMemo`**. Ensure that the **value object of the Context Provider itself is memoized** (e.g. one `useMemo` for the whole `value`) to prevent unnecessary tree re-renders. This preserves referential equality and avoids breaking consumer optimizations such as `React.memo` or virtualizers. See `.cursor/docs/Architecture.md` (Context stability).
 - **Delta Strategy:** Favor returning deltas from Workers instead of full data structures.
 - **Throttling:** Implement throttling for high-frequency events (e.g. progress updates).
 
-## 7. Strict Worker Isolation
+## 8. Strict Worker Isolation
 
 - **Scope:** Files with the suffix **`.worker.ts`** operate in a **global scope without DOM access**.
 - **Forbidden in workers:** You are **strictly forbidden** from using `window`, `document`, `localStorage`, or `sessionStorage` inside any `.worker.ts` file.
 - **Shared utilities:** If a utility is shared between main thread and worker, **verify it does not touch the DOM** before importing it into a worker. When in doubt, keep worker code self-contained or use a dedicated worker-safe utility module.
 
-## 8. Delta-Patching Integrity
+## 9. Delta-Patching Integrity
 
 - **Applier logic (main thread):** When implementing the "Applier" logic for Worker deltas, use an **immutable patching strategy**. Do not mutate the existing sheet/state in place.
 - **Apply once:** Ensure that **each delta is applied exactly once** using unique row/cell identifiers (e.g. row index + cell key) so the same change is not applied multiple times.
 - **Validation:** After applying patches, **validate that the final state does not contain duplicate entries or inconsistent indices**. Assert or check invariants (e.g. row count, cell keys per row) when appropriate.
 
-## 9. Consistency in Pagination
+## 10. Consistency in Pagination
 
 - **Public API (UI):** Standardize all **pagination to be 1-based** for the public API (e.g. `currentPage`, `totalPages`, props and hook return values consumed by the UI).
 - **Internal logic:** Use **0-based indexing** for internal array slicing and loop indices (e.g. `rows.slice((page - 1) * pageSize, page * pageSize)`).
 - **Conversion comments:** **Explicitly comment in the code** when a conversion between 1-based and 0-based is happening (e.g. `// 1-based page → 0-based start index`) to avoid index mismatches and off-by-one errors.
 
-## 10. Type-First Implementation (Drafting Protocol)
+## 11. Type-First Implementation (Drafting Protocol)
 
 - **Before implementation:** Before writing any functional logic (Runners, Workers, or Hooks), **first propose the TypeScript interfaces and the folder structure**. Wait for user confirmation of the types before proceeding to the implementation.
 - **Rationale:** This ensures the data contract is solid and avoids rework; types and structure are the single source of truth for the feature.
 
-## 11. Backward Compatibility
+## 12. Backward Compatibility
 
 - **Do not break existing usage:** When implementing or updating a feature, **maintain backward compatibility**. Avoid breaking old structures, APIs, or data shapes in a way that forces consumers to change code without a migration path.
 - **Prefer reuse:** Where possible, **reuse or extend** existing types, hooks, and options instead of replacing them. Add new fields or overloads rather than removing or renaming existing ones.

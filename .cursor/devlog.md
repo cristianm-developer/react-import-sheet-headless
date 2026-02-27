@@ -23,6 +23,28 @@ _(Add new entries at the top, most recent first.)_
 
 <!-- DEVLOG_ENTRIES -->
 
+### 2026-02-27 — ImporterContext refactor for 120-line rule
+
+**Feature / area:** Refactored single-file `ImporterContext.tsx` (220 lines) into `src/ImporterContext/` folder: state.ts, types.ts, contextInstance.ts, useImporterStateSetters.ts, useImporterActions.ts, Provider.tsx, useImporterContext.ts, index.ts. Test file moved into folder; all hook imports updated to `ImporterContext/index.js`.
+
+**Technical decisions:** Split by responsibility (state, types, context instance, state setters hook, actions hook, Provider, useImporterContext). useImporterStateSetters holds the six setState-based callbacks to keep useImporterActions under 120 lines. Public API unchanged (barrel index.ts); tests and coverage remain 100%.
+
+### 2026-02-27 — Construction Step 2 (Setting) completed
+
+**Feature / area:** Setting step executed: shared types (SheetError, BaseSheet, RawSheet, Sheet, SheetLayout, ImporterState), Registry Core (Registry&lt;T&gt;, RegistryLevel), ImporterProvider (state, layout, three Registries, EventTarget, abort, setActiveWorker), four hooks (useImporter, useImporterStatus, useSheetData, useSheetEditor) + useImporterEventTarget.
+
+**Global state changes:**
+- New `src/types/` (error, raw-sheet, sheet, sheet-layout, importer-state, index).
+- New `src/core/shared/registry/` (Registry, types, index, Registry.test).
+- New `src/ImporterContext.tsx` (replaces ImportProvider.tsx); new `src/hooks/` with five hooks.
+- Public API: ImporterProvider, useImporter({ layout }), useImporterStatus, useSheetData, useSheetEditor, useImporterEventTarget; ImportProvider kept as alias.
+
+**Technical decisions:**
+- Layout: initial value from Provider prop only (no useEffect sync) to avoid set-state-in-effect lint; useImporter({ layout }) calls setLayout in its useEffect to inject layout from the hook.
+- useSheetEditor calls useImporterContext() so it throws when used outside Provider (stub editCell does not use context yet).
+- Coverage exclude for barrel index.ts files so thresholds are met without testing re-exports.
+- ESLint argsIgnorePattern `^_` for unused parameters (e.g. stub editCell).
+
 ### 2026-02-27 — Commitizen added (Step 1 optional)
 
 **Feature / area:** Commitizen with cz-conventional-changelog; script `npm run commit`; config.commitizen.path in package.json.

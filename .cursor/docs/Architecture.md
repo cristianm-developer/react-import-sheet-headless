@@ -6,16 +6,18 @@ When you change the project structure or flow, update this document in these pla
 
 | Change type | Section to update |
 |-------------|-------------------|
-| **New or renamed folder** (e.g. `src/core/convert`) | **"Folder structure"** → Root layout tree, Core modules table, Hooks, Barrels. Add the path and responsibility. |
+| **New or renamed folder** (e.g. `src/core/convert`, `src/shared/registry`) | **"Folder structure"** → Root layout tree, Core modules table, Hooks, Barrels. Add the path and responsibility. |
 | **Pipeline / data flow change** (e.g. Parser → X → Validator) | **"Design principles → Headless → Data flow"** (one-line flow) and **"Flow summary"** (numbered list). Redraw or adjust the arrow chain. |
 | **New core module or responsibility change** | **"Folder structure → Core modules"** table: add row or edit Responsibility column. Update **"Flow summary"** steps. |
 | **New shared type or export** | **"Folder structure → Types"** and/or **"Barrels"**; update `src/index.ts` or `src/types/index.ts` description if needed. |
+| **New type (where to put it)** | **Shared** → `src/types/<name>.ts` (one file per type). **Context/module-only** → `<module>/types/<name>.ts` (e.g. `ImporterContext/types/`, `core/parser/types/`). Always one type per file; barrel in `types/index.ts`. |
 | **Worker timeout / recovery / memory / schema / I18n** | **"Maturity & resilience"**: add or adjust the relevant subsection (timeout & recovery, memory, schema versioning, I18n of errors). |
 | **Abort / cancellation / Worker cleanup** | **"Maturity & resilience"** → **"Process Abort & Worker Cleanup"**: abort API, lifecycle cleanup on unmount, state reset, `importer-aborted` event. |
 | **Register() pattern or controller interfaces** | **"Utils (controller…)"** → **"Register() pattern"**: add or adjust built-in/custom Register(), interfaces for user-created controllers. |
 | **Registry entry type (cell/row/table) or table-level scope/atomicity** | **"Utils (controller…)"** → **"Registry entry type"** and **"Table-level validations"** (scope, output, atomicity). **6. Validator**, **7. Transform** for Runner and atomicity. |
 | **Sync vs async (cell/row sync, only table async) or table resilience** | **"Design principles"** → **Data flow** (Sync Row Loop → Async Table Check). **"Utils"** → **Sync vs async** and **Resilience for async table**. **6. Validator**, **7. Transform**: pipeline phases, try/catch, EXTERNAL_* codes, AbortController for fetch. |
 | **Backward compatibility (API, types, layout)** | **"Product architecture"** → **Backward compatibility**: compatibility layer, reuse vs new structure, deprecation. |
+| **Public vs internal (what to export)** | **"Public API vs internal (infrastructure)"**: what lives in providers/, what is re-exported from index.ts; update table and Barrels if the public surface changes. |
 
 Keep this document the single source of truth for structure and flow. See also `.cursor/rules/typescript-standards.mdc` §5 (Documentation Synchronization).
 
@@ -25,6 +27,7 @@ Keep this document the single source of truth for structure and flow. See also `
 
 - **All code, identifiers, comments, and documentation are in English.**
 - This document describes the headless architecture: logic and state only, no UI components in the core.
+- **Types:** Shared types live in **`src/types/`**; types used only by one context or module live in **`<module>/types/`** (e.g. `ImporterContext/types/`, `core/parser/types/`). **One type per file**; each file is re-exported from that folder’s `types/index.ts`. See *Folder structure → Types*.
 
 ---
 
@@ -197,6 +200,30 @@ Implementation: the Provider (or a small "worker manager" used by the Provider) 
 
 ---
 
+## Public API vs internal (infrastructure)
+
+As the library grows, the key to a professional NPM-style library is to **separate what is internal/infrastructure from what is public/consumption**. Consumers should only touch the Provider (to wrap the app), the public hooks, and the exported types—never the Context implementation or internal hooks.
+
+**Principle (aligned with libraries like TanStack Query or Apollo Client):**
+
+- **Internal / infrastructure:** Context definition, Provider implementation, Worker/Comlink wiring, state setters, and any hook used only by the Provider (e.g. a hook that talks to Comlink). These live under **`src/providers/`** (and optionally internal hooks in **`src/hooks/`** that are not re-exported from **`src/index.ts`**).
+- **Public / consumption:** The component **`ImporterProvider`**, the hooks **`useImporter`**, **`useImporterStatus`**, **`useSheetData`**, **`useSheetEditor`**, and the types needed to use them (e.g. **`SheetLayout`**, **`SheetError`**, **`ProcessedSheet`**). These are the only symbols the user should import; they are re-exported from **`src/index.ts`** (the barrel).
+
+**Where things live:**
+
+| Concern | Location | Exported from `index.ts`? |
+|--------|----------|---------------------------|
+| **ImporterProvider** (component) | `src/providers/ImporterProvider.tsx` | Yes |
+| **ImporterContext** (definition, internal) | `src/providers/ImporterContext.ts` | No |
+| Public hooks (useImporter, useSheetData, …) | `src/hooks/` | Yes |
+| Internal hooks (e.g. worker/Comlink wiring) | `src/hooks/` or `src/providers/` | No |
+| Shared types (SheetLayout, SheetError, …) | `src/types/` | Yes (only types the user needs) |
+| Core (Workers, Registries, pipeline) | `src/core/` | No |
+
+**Barrel (`src/index.ts`):** This file is the single control point for the public API. It exports only: the Provider, the public hooks, and the public types. It must **not** export the Context instance, internal hooks, or internal modules. That way the project can be organized freely under `src/` while the consumer sees a clean, minimal surface.
+
+---
+
 ## Product architecture (publishing & consumption)
 
 These practices ensure the library works correctly when published and consumed in real projects (NPM, TypeScript, bundlers).
@@ -244,12 +271,29 @@ This is also reflected in `.cursor/rules/typescript-standards.mdc` (§11 Backwar
 
 ```
 src/
-  types/                    # Shared / non–process-specific types (Sheet, Row, Cell, SheetLayout, Error, ImporterState, Registry, etc.)
+  types/                    # Shared / non–process-specific types (Sheet, Row, Cell, SheetLayout, Error, ImporterState, etc.)
+    error.ts                # SheetError, SheetErrorLevel
+    raw-sheet.ts            # BaseSheet, RawSheet, RawSheetCell, RawSheetRow
+    sheet.ts                # Sheet, ValidatedRow, ValidatedCell
+    sheet-layout.ts         # SheetLayout, SheetLayoutField, SheetLayoutRef, ValidatorOrWithParams
+    importer-state.ts       # ImporterState, ImporterStatus, ImporterProgressDetail, event names
     index.ts                # Barrel: re-export all shared types
+  providers/                # Infrastructure: Provider (public) + Context and brain logic (internal). Not for direct user consumption.
+    ImporterProvider.tsx    # Public: the component that wraps the app (exported from index.ts)
+    ImporterContext.ts      # Internal: createContext and context value type (not exported)
+    state.ts                # initialState
+    types.ts                # ImporterContextValue, ImporterProviderProps, UseImporterStateSettersDeps, UseImporterActionsDeps
+    useImporterStateSetters.ts  # state setters (setFile, setRawData, setLayout, …)
+    useImporterActions.ts   # actions (processFile, register*, abort, dispatchProgress, setActiveWorker)
+    useImporterContext.ts   # Internal: hook used by public hooks to read context (not exported)
+    index.ts                # Barrel: re-export only ImporterProvider (and what it needs internally)
+    ImporterProvider.test.tsx
+  shared/                   # Shared code used across core and context (not process-specific)
+    registry/               # Registry Core (universal): Registry<T> for validators, sanitizers, transforms
+      Registry.ts
+      types.ts              # RegistryLevel, RegistryEntry
+      index.ts
   core/                     # Process-specific modules; each has its own context
-    shared/
-      registry/             # Registry Core (universal): Registry<T> class for validators, sanitizers, transforms
-        index.ts
     parser/
       types/                # Process-specific: RawSheet, RawSheetRow, RawSheetCell, worker messages
         rawSheet.ts
@@ -295,7 +339,13 @@ src/
         useSheetEdit.ts
       ...                   # resolve, immutable-update, run-edit-pipeline
       index.ts
-  hooks/                    # General hooks (cross-process or app-level)
+  hooks/                    # Public hooks (cross-process or app-level)
+    types.ts                # UseImporterOptions and other hook option/contract types
+    useImporter.ts          # useImporter({ layout }): processFile, register*, abort
+    useImporterStatus.ts    # status, progressEventTarget
+    useSheetData.ts         # sheet, errors
+    useSheetEditor.ts       # editCell (stub until Step 8)
+    useImporterEventTarget.ts # progressEventTarget, subscribeToProgress
     index.ts
   utils/
     controller/             # Building Blocks: standalone functions grouped by field/context (not by type)
@@ -318,22 +368,32 @@ src/
   index.ts                  # Public API: provider, hooks, types
 ```
 
-### Types
+### Types — placement and one-file-per-type rule
 
-- **Generic / shared types** (used by more than one core module or by the provider):
+**Where to put types**
+
+- **Shared / generic types** (used by more than one core module or by the provider):
   - Live in **`src/types/`**.
   - Examples: `Error` / `SheetError`, `Sheet`, `Row`, `Cell`, `SheetLayout`, `Registry`, and any shared contracts (e.g. `ImporterState`, `ImporterStatus`).
   - Re-exported from **`src/types/index.ts`** (and from main **`src/index.ts`** as needed).
-- **Process-specific types** (used only inside one core module):
-  - Live in **`core/<process>/types/`**.
+- **Context- or module-specific types** (used only by one context or core module):
+  - Live in a **`types/`** folder **inside that module**.
   - Examples:
-    - **Parser:** `core/parser/types/rawSheet.ts` → `RawSheet`, `RawSheetRow`, `RawSheetCell`; parser worker message types.
-    - **Convert:** `core/convert/types/` → `ConvertedSheet`, `ColumnMismatch`, `ConvertSuccess`, `ConvertResult`.
-    - **Sanitizer:** `core/sanitizer/types/` → sanitizer worker messages, progress payloads.
-    - **Validator:** `core/validator/types/` → validator worker messages, progress payloads.
-    - **Transform:** `core/transform/types/` → transform worker messages, progress payloads.
-    - **Editor:** `core/editor/types/` → `EditCellParams`, `EditResult` (if not shared).
-  - Re-exported from **`core/<process>/types/index.ts`** (and from **`core/<process>/index.ts`** if part of the public surface).
+    - **Providers:** `src/providers/types.ts` (or `providers/types/`) — e.g. `ImporterContextValue`, `ImporterProviderProps`, each in its own file.
+    - **Parser:** `core/parser/types/` — e.g. `RawSheet`, `RawSheetRow`, `RawSheetCell`, parser worker message types.
+    - **Convert:** `core/convert/types/` — `ConvertedSheet`, `ColumnMismatch`, `ConvertSuccess`, `ConvertResult`.
+    - **Sanitizer:** `core/sanitizer/types/` — sanitizer worker messages, progress payloads.
+    - **Validator:** `core/validator/types/` — validator worker messages, progress payloads.
+    - **Transform:** `core/transform/types/` — transform worker messages, progress payloads.
+    - **Editor:** `core/editor/types/` — `EditCellParams`, `EditResult` (if not shared).
+  - Re-exported from **`<module>/types/index.ts`** (and from **`<module>/index.ts`** if part of the public surface).
+
+**One type per file**
+
+- Every type (or small, tightly related group) must live in **its own file**. Do not put multiple unrelated types in a single file.
+- In **`src/types/`**: one file per type or per small cohesive group (e.g. `error.ts`, `sheet.ts`, `sheet-layout.ts`).
+- In **`<module>/types/`**: same rule — e.g. `src/providers/types/context-value.ts`, `src/providers/types/provider-props.ts`; `core/parser/types/raw-sheet.ts`, `core/parser/types/worker-messages.ts`.
+- The barrel **`types/index.ts`** re-exports from these individual files so the rest of the codebase imports from the barrel.
 
 ### Core modules (contexts separated)
 
@@ -437,11 +497,14 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
 
 ### Hooks
 
-- **Public API (consumer-facing):** The library exposes **four specialized hooks** that consume the Provider context (see *Provider as brain, Hooks as interface*):
-  - **`useImporter({ layout })`** — entry point; receives layout, exposes **`processFile(file)`**, `registerValidator`, `registerSanitizer`, `registerTransform`, `abort`. May live in **`src/hooks/`** or **`core/parser/hooks/`** (or a dedicated importer hook module).
+- **Public API (consumer-facing):** All live in **`src/hooks/`** and are the **only** hooks re-exported from **`src/index.ts`** (see *Public API vs internal*). The library exposes **four specialized hooks** that consume the Provider context (see *Provider as brain, Hooks as interface*):
+  - **`useImporter({ layout })`** — entry point; receives layout, exposes **`processFile(file)`**, `registerValidator`, `registerSanitizer`, `registerTransform`, `abort`.
   - **`useImporterStatus()`** — returns status and progress (EventTarget subscription or snapshot); for progress UI.
   - **`useSheetData()`** — returns result (sheet) and errors; for table rendering.
   - **`useSheetEditor()`** — returns **`editCell`**; for the edit pipeline.
+- **Internal hooks** (used only by the Provider or by other hooks, **not** exported from **`src/index.ts`**):
+  - **`src/hooks/`** — e.g. `useImporterEventTarget`, or any hook that wraps Comlink/Worker for the Provider (e.g. `useInternalWorker`). Keep these in `src/hooks/` for discoverability but do **not** list them in the barrel.
+  - **`src/providers/`** — e.g. `useImporterContext`, `useImporterStateSetters`, `useImporterActions`; only the Provider and public hooks import them.
 - **Process-specific hooks** (internal or composed by the above) live next to their process:
   - **`core/parser/hooks/`** — e.g. `useParserWorker`, `usePreview`; parser invoked via Provider when `processFile(file)` runs.
   - **`core/convert/hooks/`** — e.g. `useConvert` (or Convert logic inside the Provider/orchestrator).
@@ -449,16 +512,19 @@ Sanitizers run **before** validators in the pipeline. Optional **`utils/presets/
   - **`core/validator/hooks/`** — e.g. `useValidatorWorker`.
   - **`core/transform/hooks/`** — e.g. `useTransformWorker`.
   - **`core/editor/hooks/`** — e.g. `useSheetEdit`; used by `useSheetEditor()`.
-- **General hooks** (cross-process) can live in **`src/hooks/`**.
-- All public hooks are re-exported from **`src/index.ts`**.
+- Only the **four public hooks** above are re-exported from **`src/index.ts`**.
 
 ### Barrels (index and types)
 
 - **`src/types/index.ts`** — re-exports all shared types from `src/types/`.
-- **`src/index.ts`** — re-exports provider, public hooks, and public types (including from `src/types` and, if desired, selected types from `core/*/types`).
+- **`src/index.ts`** — **single control point for the public API.** It exports **only** what the user needs:
+  - **Provider:** `ImporterProvider` from `src/providers/ImporterProvider` (or `src/providers`).
+  - **Public hooks:** `useImporter`, `useImporterStatus`, `useSheetData`, `useSheetEditor` from `src/hooks/`.
+  - **Public types:** e.g. `SheetLayout`, `SheetError`, `ProcessedSheet` (or equivalent) from `src/types/`.
+  - It must **not** export: the Context instance, `useImporterContext`, internal worker hooks, or internal provider modules. This keeps the library surface clean and NPM-friendly (see *Public API vs internal*).
 - Each **`core/<process>/`** has:
   - **`core/<process>/types/index.ts`** — re-exports process-specific types.
-  - **`core/<process>/index.ts`** — re-exports public API of that process (hooks, types, worker factory if needed).
+  - **`core/<process>/index.ts`** — re-exports public API of that process (hooks, types, worker factory if needed); these are for internal use, not for `src/index.ts`.
 
 ---
 

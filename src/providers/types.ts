@@ -12,6 +12,7 @@ export interface ImporterContextValue {
   readonly status: ImporterStatus;
   readonly result: ImporterState['result'];
   readonly convertedSheet: ImporterState['convertedSheet'];
+  readonly sanitizedSheet: ImporterState['sanitizedSheet'];
   readonly convertResultData: ImporterState['convertResultData'];
   readonly layout: SheetLayout | null;
   readonly engine: ParserEngine | null;
@@ -24,6 +25,7 @@ export interface ImporterContextValue {
   setStatus: (status: ImporterStatus) => void;
   setResult: (result: ImporterState['result']) => void;
   setConvertedSheet: (sheet: ImporterState['convertedSheet']) => void;
+  setSanitizedSheet: (sheet: ImporterState['sanitizedSheet']) => void;
   setConvertResultData: (
     data:
       | ImporterState['convertResultData']

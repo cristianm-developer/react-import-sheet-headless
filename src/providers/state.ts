@@ -7,5 +7,6 @@ export const initialState: ImporterState = {
   status: 'idle',
   result: null,
   convertedSheet: null,
+  sanitizedSheet: null,
   convertResultData: null,
 };

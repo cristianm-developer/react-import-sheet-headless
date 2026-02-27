@@ -5,7 +5,7 @@ import type { ImporterContextValue, UseImporterStateSettersDeps } from './types.
 
 export function useImporterStateSetters(
   deps: UseImporterStateSettersDeps,
-): Pick<
+):   Pick<
   ImporterContextValue,
   | 'setLayout'
   | 'setEngine'
@@ -15,6 +15,7 @@ export function useImporterStateSetters(
   | 'setStatus'
   | 'setResult'
   | 'setConvertedSheet'
+  | 'setSanitizedSheet'
   | 'setConvertResultData'
 > {
   const { setState, setLayoutState, setEngineState } = deps;
@@ -41,6 +42,10 @@ export function useImporterStateSetters(
 
   const setConvertedSheet = useCallback((convertedSheet: ImporterState['convertedSheet']) => {
     setState((prev) => ({ ...prev, convertedSheet, convertResultData: null }));
+  }, [setState]);
+
+  const setSanitizedSheet = useCallback((sanitizedSheet: ImporterState['sanitizedSheet']) => {
+    setState((prev) => ({ ...prev, sanitizedSheet }));
   }, [setState]);
 
   const setConvertResultData = useCallback(
@@ -76,6 +81,7 @@ export function useImporterStateSetters(
     setStatus,
     setResult,
     setConvertedSheet,
+    setSanitizedSheet,
     setConvertResultData,
   };
 }

@@ -1,4 +1,5 @@
 import type { ConvertedSheet } from '../core/convert/types/converted-sheet.js';
+import type { SanitizedSheet } from '../core/sanitizer/types/sanitized-sheet.js';
 import type { RawSheet } from './raw-sheet.js';
 import type { Sheet } from './sheet.js';
 
@@ -18,6 +19,7 @@ export interface ImporterState {
   readonly status: ImporterStatus;
   readonly result: Sheet | null;
   readonly convertedSheet: ConvertedSheet | null;
+  readonly sanitizedSheet: SanitizedSheet | null;
   readonly convertResultData: ConvertResultData | null;
 }
 

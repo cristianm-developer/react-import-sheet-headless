@@ -67,7 +67,7 @@ function UploadAndImport() {
 | **`useSheetData()`** | Result `sheet` and `errors` for the table. |
 | **`useSheetEditor()`** | `editCell` for the edit pipeline (when implemented). |
 
-**Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build **result** sheet with errors); progress and result available via hooks and EventTarget.
+**Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build sheet with errors) → run **Transform** on that sheet (Worker returns value deltas; main thread applies **`applyTransformDelta`** to get final **result**); progress and result available via hooks and EventTarget.
 
 ## See also
 
@@ -75,4 +75,4 @@ function UploadAndImport() {
 - [How to: Column mapping (Convert)](how-to-convert.md) — Align file headers to layout, reorder/rename columns, applyMapping.
 - [How to: Sanitizer](how-to-sanitizer.md) — valueType casting, cell/row/sheet sanitizers, Convert → Sanitizer → Validator.
 - [How to: Validators](how-to-validators.md) — cell/row/table validators, delta of errors, Register(), I18n, sync vs async.
-- Context-specific guides (e.g. `how-to-layout.md`, `how-to-transformers.md`) are added as those features are documented.
+- [How to: Transformers](how-to-transformers.md) — cell/row/sheet transforms, delta of values, Register(), safe-first, sync vs async.

@@ -3,7 +3,15 @@ import type { SanitizedSheet } from '../core/sanitizer/types/sanitized-sheet.js'
 import type { RawSheet } from './raw-sheet.js';
 import type { Sheet } from './sheet.js';
 
-export type ImporterStatus = 'idle' | 'loading' | 'parsing' | 'validating' | 'success' | 'error' | 'cancelled';
+export type ImporterStatus =
+  | 'idle'
+  | 'loading'
+  | 'parsing'
+  | 'validating'
+  | 'transforming'
+  | 'success'
+  | 'error'
+  | 'cancelled';
 
 export interface ConvertResultData {
   readonly headersFound: readonly string[];

@@ -17,6 +17,7 @@ export default defineConfig({
         '**/core/parser/hooks/useParserWorker.ts',
         '**/core/sanitizer/hooks/useSanitizerWorker.ts',
         '**/core/validator/hooks/useValidatorWorker.ts',
+        '**/core/transform/hooks/useTransformWorker.ts',
         '**/hooks/useImportSheet.ts',
       ],
       thresholds: {

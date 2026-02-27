@@ -23,6 +23,16 @@ _(Add new entries at the top, most recent first.)_
 
 <!-- DEVLOG_ENTRIES -->
 
+### 2026-02-27 — Construction Step 7 (Transform) completed
+
+**Feature / area:** Transform step implemented: runs cell → row → sheet transforms in a Web Worker over validated Sheet; returns only a delta of value changes (and optional sheet errors from async table transforms); main thread applies delta via applyTransformDelta and merges sheet errors into result.
+
+**Global state changes:**
+- New `src/core/transform/` (types/, runner/, worker/, hooks/, delta-applier.ts, index.ts). Worker entry `transform.worker` in tsup. useTransformWorker (internal) exposes transform() and transformAndApply(); transformAndApply uses layout from context, applyTransformDelta, and setResult(patchedSheet). ImporterStatus extended with `'transforming'`.
+- New `src/utils/controller/string/cell-to-upper-transform.ts` (CellToUpperTransform, Register(), id `toUpperCase`). Worker registry registers built-in toUpperCase; Runner resolves by id from layout (fields[].transformations, rowTransformations, sheetTransformations).
+
+**Technical decisions:** Cell and row transforms are strictly sync; only sheet (table) transforms may be async. runSheetTransforms uses try/catch and returns EXTERNAL_TRANSFORM_FAILED in errors array on throw; options.signal passed for abort. Safe-first: sheet.errors → return { deltas: [] }; row.errors → skip row; cell.errors → skip transform for that cell. runTransform applies accumulated deltas to a copy via applyTransformDelta before calling runSheetTransforms so table transforms see the already-transformed sheet. TransformResult = { deltas, errors? }; hook merges errors into sheet.errors when applying. Throttled progress (16ms). Coverage exclusion for useTransformWorker.
+
 ### 2026-02-27 — Construction Step 6 (Validator) completed
 
 **Feature / area:** Validator step implemented: runs cell → row → table validators in a Web Worker over SanitizedSheet; returns only a delta of errors; main thread builds initial Sheet and applies delta via applyValidatorDelta.

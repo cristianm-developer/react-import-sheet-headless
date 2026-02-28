@@ -15,6 +15,8 @@ export function ImporterProvider({
   engine: engineProp,
   persist = false,
   persistKey = DEFAULT_PERSIST_KEY,
+  onSubmit = null,
+  submitKeyMap = null,
 }: ImporterProviderProps) {
   const [state, setState] = useState(initialState);
   const [layout, setLayoutState] = useState<SheetLayout | null>(layoutProp ?? null);
@@ -39,7 +41,7 @@ export function ImporterProvider({
     state.result,
     stateSetters.setRawData,
     stateSetters.setResult,
-    layout?.version ?? null,
+    layout?.version ?? null
   );
 
   const actions = useImporterActions({
@@ -70,6 +72,8 @@ export function ImporterProvider({
       layout,
       engine,
       progressEventTarget,
+      onSubmit,
+      submitKeyMap,
       ...actions,
       persist,
       persistKey,
@@ -82,18 +86,16 @@ export function ImporterProvider({
       layout,
       engine,
       progressEventTarget,
+      onSubmit,
+      submitKeyMap,
       actions,
       persist,
       persistKey,
       persistSession.hasRecoverableSession,
       persistSession.recoverSession,
       persistSession.clearPersistedState,
-    ],
+    ]
   );
 
-  return (
-    <ImporterContext.Provider value={value}>
-      {children}
-    </ImporterContext.Provider>
-  );
+  return <ImporterContext.Provider value={value}>{children}</ImporterContext.Provider>;
 }

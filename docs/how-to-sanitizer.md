@@ -31,7 +31,17 @@ Before any cell sanitizers, the Sanitizer casts each cell value by the field’s
 
 ## Built-in sanitizers
 
-- **`trim`** (cell): trims string values; non-strings are coerced to string then trimmed. Register with **`registerTrimSanitizer(registerSanitizer)`**, then use id **`'trim'`** in layout (e.g. `sanitizers: ['trim']`).
+All built-in sanitizers are **cell-level** and are registered automatically in the Worker registry. Use their ids in **`fields[].sanitizers`** (e.g. `['trim', 'number', 'string:minusculas']`). Those that accept options use **params** in the layout: `{ name: 'number:toStringId', params: { length: 4, fill: '0' } }`.
+
+- **`trim`** — trim string; null/undefined → `''`.
+- **`number`** — digits only, output integer. **`float`** — numeric only, output float.
+- **`number:toStringId`** / **`number:toStringEnd`** — pad numeric at start or end (params: `length`, `fill`).
+- **`data`** — formatted date+time. **`data:year`** — year only. **`data:data`** — date only (YYYY-MM-DD). **`data:time`** — time only (HH:MM:SS). **`data:timestamp`** — Unix timestamp.
+- **`string:minusculas`** / **`string:mayusculas`** — lowercase / uppercase.
+- **`string:maxLength`** — truncate (param: `maxLength`). **`string:trimAdd`** / **`string:trimPre`** — pad end/start (params: `length`, `fill`).
+- **`string:spaces`** — collapse runs of spaces to one, trim.
+- **`nullToEmpty`** — null/undefined → `''`.
+- **`replace-from-regex`** — replace by regex (params: `pattern`, `flags?`, `replacement?`). **`replace-from-str`** — replace literal (params: `search`, `replacement?`).
 
 Full list and params: [Sanitizers reference](sanitizers.md).
 

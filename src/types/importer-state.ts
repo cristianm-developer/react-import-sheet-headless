@@ -1,5 +1,6 @@
 import type { ConvertedSheet } from '../core/convert/types/converted-sheet.js';
 import type { SanitizedSheet } from '../core/sanitizer/types/sanitized-sheet.js';
+import type { ChangeLogEntry } from './change-log.js';
 import type { PipelineMetrics } from './metrics.js';
 import type { RawSheet } from './raw-sheet.js';
 import type { Sheet } from './sheet.js';
@@ -33,6 +34,8 @@ export interface ImporterState {
   readonly sanitizedSheet: SanitizedSheet | null;
   readonly convertResultData: ConvertResultData | null;
   readonly metrics: PipelineMetrics | null;
+  readonly changeLog: readonly ChangeLogEntry[];
+  readonly submitDone: boolean;
 }
 
 export const IMPORTER_PROGRESS_EVENT = 'importer-progress';

@@ -24,9 +24,15 @@ For folder structure and pipeline flow, see [Architecture](../../../.cursor/docs
 
 ## Controllers in this repo
 
-| Context   | Contents |
-|-----------|----------|
-| **required** | [cell-required-validator](required/cell-required-validator.ts) — `required` (cell). |
-| **string**   | [cell-trim-sanitizer](string/cell-trim-sanitizer.ts), [cell-to-upper-transform](string/cell-to-upper-transform.ts) — `trim`, `toUpperCase` (cell). |
+| Context      | Contents                                                                                                                                                                                                                                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **required** | [cell-required-validator](required/cell-required-validator.ts) — `required` (cell).                                                                                                                                                                                                                                                    |
+| **string**   | Sanitizers: trim, string:maxLength, nullToEmpty, pad, collapse-spaces, lower/upper. Validators: string:byregex, string:maxLength, string:minLength, string:email, string:phone, string:onlyNumbers, string:onlyLetters. Transforms: toUpperCase, toLowerCase, slice, replace, replaceByRegex, fillStart, fillEnd, extractByRegex.      |
+| **number**   | Sanitizers: number (int), float, number:toStringId, number:toStringEnd. Validators: number:min, number:max, number:float, number:integer, number:nonNegative, number:nonPositive, number:nonZero. Transforms: numberAdd, numberMultiply, numberDivide, numberSubtract, numberRound, numberAbs, numberSqrt, numberLimit, numberPercent. |
+| **date**     | Sanitizers: data:year, data:data, data:time, data:timestamp, data:format. Validators: date:min, date:max, date:onlyYear, date:onlyTime, date:datetime, date:timestamp, date:utc. Transforms: dateToOnlyTime, dateToOnlyDate, dateToTimeDate, dateToUtc, dateLimit, dateAdd, dateSubtract.                                              |
+| **bool**     | Validators: bool:onlyTrue, bool:onlyFalse.                                                                                                                                                                                                                                                                                             |
+| **replace**  | Sanitizers: replace-from-regex, replace-from-str.                                                                                                                                                                                                                                                                                      |
+
+See [docs/sanitizers.md](../../../docs/sanitizers.md) and [docs/transformers.md](../../../docs/transformers.md) for full compatibility tables and params.
 
 ← [Back to README](../../../README.md) · [Architecture](../../../.cursor/docs/Architecture.md)

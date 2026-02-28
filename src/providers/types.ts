@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Registry } from '../shared/registry/index.js';
 import type { RegistryLevel } from '../shared/registry/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
+import type { ChangeLogEntry } from '../types/change-log.js';
 import type {
   ImporterState,
   ImporterStatus,
@@ -20,9 +21,14 @@ export interface ImporterContextValue {
   readonly sanitizedSheet: ImporterState['sanitizedSheet'];
   readonly convertResultData: ImporterState['convertResultData'];
   readonly metrics: ImporterState['metrics'];
+  readonly changeLog: ImporterState['changeLog'];
+  readonly submitDone: boolean;
   readonly layout: SheetLayout | null;
   readonly engine: ParserEngine | null;
   readonly progressEventTarget: EventTarget;
+  onSubmit: ((rows: Record<string, unknown>[]) => void) | null;
+  submitKeyMap: Readonly<Record<string, string>> | null;
+  addChangeLogEntry: (entry: ChangeLogEntry) => void;
   setLayout: (layout: SheetLayout | null) => void;
   setEngine: (engine: ParserEngine | null) => void;
   setFile: (file: File | null) => void;
@@ -35,26 +41,27 @@ export interface ImporterContextValue {
   setConvertResultData: (
     data:
       | ImporterState['convertResultData']
-      | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData']),
+      | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData'])
   ) => void;
   setMetrics: (metrics: ImporterState['metrics']) => void;
+  setSubmitDone: (done: boolean) => void;
   setPhaseTiming: (phase: PipelinePhase, ms: number) => void;
   finalizeMetrics: (rowCount: number) => void;
   processFile: (file: File) => void;
   registerValidator: (
     name: string,
     fn: (...args: unknown[]) => unknown,
-    options: { type: RegistryLevel },
+    options: { type: RegistryLevel }
   ) => void;
   registerSanitizer: (
     name: string,
     fn: (...args: unknown[]) => unknown,
-    options: { type: RegistryLevel },
+    options: { type: RegistryLevel }
   ) => void;
   registerTransform: (
     name: string,
     fn: (...args: unknown[]) => unknown,
-    options: { type: RegistryLevel },
+    options: { type: RegistryLevel }
   ) => void;
   abort: () => void;
   dispatchProgress: (detail: ImporterProgressDetail) => void;
@@ -72,6 +79,8 @@ export interface ImporterProviderProps {
   engine?: ParserEngine | null;
   persist?: boolean;
   persistKey?: string;
+  onSubmit?: (rows: Record<string, unknown>[]) => void | null;
+  submitKeyMap?: Readonly<Record<string, string>> | null;
 }
 
 export interface UseImporterStateSettersDeps {

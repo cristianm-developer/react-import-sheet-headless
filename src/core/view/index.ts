@@ -1,8 +1,13 @@
 export { useSheetView } from './hooks/useSheetView.js';
 export { getRowsWithErrors } from './get-rows-with-errors.js';
-export { getViewCounts } from './get-view-counts.js';
+export { getViewCounts, hasValidationErrors } from './get-view-counts.js';
 export { sheetToCSV } from './export/sheet-to-csv.js';
 export { sheetToJSON } from './export/sheet-to-json.js';
+export {
+  getCellValue,
+  sheetRowsToObjects,
+  sheetToObjectsWithKeyMap,
+} from './export/sheet-to-objects.js';
 export type {
   UseSheetViewOptions,
   UseSheetViewReturn,

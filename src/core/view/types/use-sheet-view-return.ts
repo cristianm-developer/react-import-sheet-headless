@@ -1,3 +1,4 @@
+import type { ChangeLogEntry } from '../../../types/change-log.js';
 import type { EditCellParams } from '../../../types/edit.js';
 import type { PaginatedResult } from '../../../types/paginated-result.js';
 import type { Sheet, ValidatedRow } from '../../../types/sheet.js';
@@ -17,6 +18,9 @@ export interface UseSheetViewReturn<TRow = ValidatedRow> {
   rowsWithErrors: readonly TRow[];
   counts: ViewCounts;
   editCell: (params: EditCellParams) => void | Promise<void>;
+  removeRow: (rowIndex: number) => void;
+  changeLog: readonly ChangeLogEntry[];
+  changeLogAsText: string;
   exportToCSV: (options?: ExportOptions) => string | Blob | Promise<string | Blob>;
   exportToJSON: (options?: ExportOptions) => string | Blob | Promise<string | Blob>;
   downloadCSV: (options?: ExportOptions & { filename?: string }) => void | Promise<void>;

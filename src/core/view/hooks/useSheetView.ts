@@ -9,27 +9,17 @@ import { sheetToCSV } from '../export/sheet-to-csv.js';
 import { sheetToJSON } from '../export/sheet-to-json.js';
 import type { UseSheetViewOptions, UseSheetViewReturn } from '../types/index.js';
 
-export function useSheetView(
-  options: UseSheetViewOptions = {},
-): UseSheetViewReturn<ValidatedRow> {
-  const {
-    page: initialPage = 1,
-    defaultPageSize = 25,
-    filterMode = 'all',
-  } = options;
+export function useSheetView(options: UseSheetViewOptions = {}): UseSheetViewReturn<ValidatedRow> {
+  const { page: initialPage = 1, defaultPageSize = 25, filterMode = 'all' } = options;
   const [page, setPage] = useState(initialPage);
   const pageSize = defaultPageSize;
-  const { sheet, editCell } = useSheetEditor({});
+  const { sheet, editCell, removeRow, changeLog, changeLogAsText } = useSheetEditor({});
   const ctx = useImporterContext();
 
-  const rowsWithErrors = useMemo(
-    () => (sheet ? getRowsWithErrors(sheet) : []),
-    [sheet],
-  );
+  const rowsWithErrors = useMemo(() => (sheet ? getRowsWithErrors(sheet) : []), [sheet]);
   const sourceRows = useMemo(
-    () =>
-      filterMode === 'errors-only' ? rowsWithErrors : (sheet?.rows ?? []),
-    [filterMode, rowsWithErrors, sheet],
+    () => (filterMode === 'errors-only' ? rowsWithErrors : (sheet?.rows ?? [])),
+    [filterMode, rowsWithErrors, sheet]
   );
   const totalRows = sourceRows.length;
 
@@ -39,11 +29,11 @@ export function useSheetView(
       const pps = ps ?? pageSize;
       return getPaginatedResultFromRows(sourceRows, pp, pps);
     },
-    [page, pageSize, sourceRows],
+    [page, pageSize, sourceRows]
   );
   const paginatedRows = useMemo(
     () => getPaginatedResult(page, pageSize).rows,
-    [getPaginatedResult, page, pageSize],
+    [getPaginatedResult, page, pageSize]
   );
   const getRows = useCallback(
     (page: number, limit: number) => {
@@ -51,14 +41,11 @@ export function useSheetView(
       const start = (page - 1) * limit;
       return sourceRows.slice(start, start + limit);
     },
-    [sourceRows],
+    [sourceRows]
   );
   const counts = useMemo(
-    () =>
-      sheet
-        ? getViewCounts(sheet)
-        : { totalRows: 0, rowsWithErrors: 0, totalErrors: 0 },
-    [sheet],
+    () => (sheet ? getViewCounts(sheet) : { totalRows: 0, rowsWithErrors: 0, totalErrors: 0 }),
+    [sheet]
   );
 
   const exportToCSV = useCallback(
@@ -66,14 +53,14 @@ export function useSheetView(
       if (!sheet || !ctx.layout) return '';
       return sheetToCSV(sheet, ctx.layout, opts ?? {});
     },
-    [sheet, ctx.layout],
+    [sheet, ctx.layout]
   );
   const exportToJSON = useCallback(
     (opts?: Parameters<UseSheetViewReturn['exportToJSON']>[0]) => {
       if (!sheet) return '[]';
       return sheetToJSON(sheet, ctx.layout ?? null, opts ?? {});
     },
-    [sheet, ctx.layout],
+    [sheet, ctx.layout]
   );
 
   const downloadCSV = useCallback(
@@ -88,7 +75,7 @@ export function useSheetView(
       a.click();
       URL.revokeObjectURL(url);
     },
-    [exportToCSV],
+    [exportToCSV]
   );
   const downloadJSON = useCallback(
     async (opts?: Parameters<UseSheetViewReturn['downloadJSON']>[0]) => {
@@ -101,7 +88,7 @@ export function useSheetView(
       a.click();
       URL.revokeObjectURL(url);
     },
-    [exportToJSON],
+    [exportToJSON]
   );
 
   return useMemo(
@@ -117,6 +104,9 @@ export function useSheetView(
       rowsWithErrors,
       counts,
       editCell,
+      removeRow,
+      changeLog,
+      changeLogAsText,
       exportToCSV,
       exportToJSON,
       downloadCSV,
@@ -136,6 +126,9 @@ export function useSheetView(
       rowsWithErrors,
       counts,
       editCell,
+      removeRow,
+      changeLog,
+      changeLogAsText,
       exportToCSV,
       exportToJSON,
       downloadCSV,
@@ -143,6 +136,6 @@ export function useSheetView(
       ctx.hasRecoverableSession,
       ctx.recoverSession,
       ctx.clearPersistedState,
-    ],
+    ]
   );
 }

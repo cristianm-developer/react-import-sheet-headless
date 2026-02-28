@@ -60,20 +60,39 @@ function UploadAndImport() {
 
 ## Hooks and flow
 
-| Hook | Role |
-|------|------|
-| **`useImporter({ layout?, engine? })`** | Entry: `processFile(file)`, `abort()`, register APIs for validators/sanitizers/transforms. |
-| **`useImportSheet()`** | After preview: `startFullImport()` to parse the full file. |
-| **`useConvert()`** | After raw data is set: `convert()` to align headers to layout; returns `convertedSheet` or `convertResult` (reorder/rename/applyMapping). |
-| **`useImporterStatus()`** | `status` and progress (subscribe to EventTarget for `importer-progress` / `importer-aborted`). |
-| **`useSheetData()`** | Result `sheet` and `errors` for the table. |
-| **`useSheetEditor({ page?, pageSize?, debounceMs? })`** | Result `sheet`, **`editCell({ rowIndex, cellKey, value })`**, **`pageData`**, **`totalPages`** for paginated editing. |
-| **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Paginated view, **filterMode** (all \| errors-only), **totalRows** / **getRows** (virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor. |
+| Hook                                                         | Role                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`useImporter({ layout?, engine? })`**                      | Entry: `processFile(file)`, `abort()`, register APIs, **`submit()`**, **`canSubmit`**, **`submitDone`**. When Provider has **`onSubmit`**, call **`submit()`** to pass the processed result (layout objects or key-mapped) to your callback; allowed only when there are no validation errors. After submit, editing is disabled; export/download remain available. |
+| **`useImportSheet()`**                                       | After preview: `startFullImport()` to parse the full file.                                                                                                                                                                                                                                                                                                          |
+| **`useConvert()`**                                           | After raw data is set: `convert()` to align headers to layout; returns `convertedSheet` or `convertResult` (reorder/rename/applyMapping).                                                                                                                                                                                                                           |
+| **`useImporterStatus()`**                                    | `status` and progress (subscribe to EventTarget for `importer-progress` / `importer-aborted`).                                                                                                                                                                                                                                                                      |
+| **`useSheetData()`**                                         | Result **`sheet`**, **`errors`**, **`toObjects<T>(mapRow)`** (convert rows to your DTO), **`toObjectsWithKeyMap(keyMap)`** (sheet key → output attr). See [How to: Result](how-to-result.md).                                                                                                                                                                       |
+| **`useSheetEditor({ page?, pageSize?, debounceMs? })`**      | Result `sheet`, **`editCell({ rowIndex, cellKey, value })`**, **`removeRow(rowIndex)`**, **`pageData`**, **`totalPages`**, **`canEdit`** (false after submit). When **submitDone** is true, **canEdit** is false and edit/remove no-op.                                                                                                                             |
+| **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Paginated view, **filterMode** (all \| errors-only), **totalRows** / **getRows** (virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor.                                                                                      |
 
 **Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build sheet with errors) → run **Transform** on that sheet (Worker returns value deltas; main thread applies **`applyTransformDelta`** to get final **result**); progress and result available via hooks and EventTarget.
 
+## Submit (after validation)
+
+Pass **`onSubmit`** (and optionally **`submitKeyMap`**) to **ImporterProvider**. **`onSubmit`** receives an array of row objects: either **layout-based** (one object per row, keys = layout column keys) or **key-mapped** when **`submitKeyMap`** is provided (sheet column key → output attribute name). From **useImporter()** use **`submit()`** to run the callback; **`canSubmit`** is true only when status is success, there are no validation errors, and submit has not run yet. After **`submit()`**, **`submitDone`** is true, editing is disabled (**useSheetEditor** exposes **`canEdit: false`** and **editCell** / **removeRow** no-op), but export (e.g. **downloadCSV**, **downloadJSON**) remains available.
+
+```tsx
+<ImporterProvider
+  onSubmit={(rows) => sendToApi(rows)}
+  submitKeyMap={{ name: 'nombre', email: 'correo' }}
+>
+  ...
+</ImporterProvider>;
+
+const { submit, canSubmit, submitDone } = useImporter();
+<button type="button" onClick={() => submit()} disabled={!canSubmit}>
+  Submit
+</button>;
+```
+
 ## See also
 
+- [How to: Result — convert to your object for submit](how-to-result.md) — toObjects, toObjectsWithKeyMap, getCellValue.
 - [How to: Parser and file import](how-to-parser.md) — Supported formats, engine option, preview vs full import, types, progress and abort.
 - [How to: Column mapping (Convert)](how-to-convert.md) — Align file headers to layout, reorder/rename columns, applyMapping.
 - [How to: Sanitizer](how-to-sanitizer.md) — valueType casting, cell/row/sheet sanitizers, Convert → Sanitizer → Validator.

@@ -22,6 +22,9 @@ export {
 } from './types/index.js';
 export type {
   BaseSheet,
+  ChangeLogEntry,
+  ChangeLogEntryCellEdit,
+  ChangeLogEntryRowRemove,
   EditCellParams,
   FieldInputType,
   FieldValueType,
@@ -40,6 +43,8 @@ export type {
   ValidatedRow,
   ValidatorOrWithParams,
 } from './types/index.js';
+export { formatChangeLogAsText } from './types/index.js';
+export { getCellValue, hasValidationErrors } from './core/view/index.js';
 export type {
   ExportOptions,
   UseSheetViewOptions,

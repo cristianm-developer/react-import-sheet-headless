@@ -9,8 +9,18 @@ export type {
   RawSheetRow,
 } from './raw-sheet.js';
 export type { Sheet, ValidatedCell, ValidatedRow } from './sheet.js';
-export type { PipelineMetrics, PipelineMetricsPercentages, PipelineMetricsTimings } from './metrics.js';
+export type {
+  PipelineMetrics,
+  PipelineMetricsPercentages,
+  PipelineMetricsTimings,
+} from './metrics.js';
 export { buildPipelineMetrics, SLOW_THRESHOLD_MS } from './metrics.js';
+export type {
+  ChangeLogEntry,
+  ChangeLogEntryCellEdit,
+  ChangeLogEntryRowRemove,
+} from './change-log.js';
+export { formatChangeLogAsText } from './change-log.js';
 export type { EditCellParams } from './edit.js';
 export type { PaginatedResult } from './paginated-result.js';
 export type {

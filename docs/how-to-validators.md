@@ -46,7 +46,15 @@ The Worker **does not** return the full sheet. It returns **ValidatorDelta**: an
 
 ## Built-in validators
 
-- **`required`** (cell): fails when value is null, undefined, or blank string. Use **`CellRequiredValidator.Register(registerValidator)`** in the layout or register manually; id `'required'`.
+All built-in validators are **cell-level** and are registered automatically in the Worker registry. Use the string id in the layout (e.g. `validators: ['required', 'string:email']`) or with params (e.g. `{ name: 'string:maxLength', params: { maxLength: 100 } }`).
+
+- **`required`** — value must be non-empty (not null, undefined, or blank string).
+- **String:** `string:byregex`, `string:maxLength`, `string:minLength`, `string:email`, `string:phone`, `string:phoneInternational`, `string:phoneLocal`, `string:onlyNumbers`, `string:onlyLetters`.
+- **Number:** `number:min`, `number:max`, `number:float`, `number:integer`, `number:nonNegative`, `number:nonPositive`, `number:nonZero`.
+- **Date:** `date:min`, `date:max`, `date:onlyYear`, `date:onlyTime`, `date:datetime`, `date:timestamp`, `date:utc`.
+- **Bool:** `bool:onlyTrue`, `bool:onlyFalse`.
+
+See [validators.md](validators.md) for the full compatibility table and params.
 
 ## Running the Validator
 

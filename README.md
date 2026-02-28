@@ -116,7 +116,7 @@ function VirtualizedTable() {
 
 Step-by-step usage and recipes (handling large files, real-time errors, session recovery): **[How to / Usage](docs/how-to.md)**.
 
-Topic-specific guides: [Parser](docs/how-to-parser.md), [Convert](docs/how-to-convert.md), [Sanitizer](docs/how-to-sanitizer.md), [Validators](docs/how-to-validators.md), [Transformers](docs/how-to-transformers.md), [Edit](docs/how-to-edit.md), [View](docs/how-to-view.md).
+Topic-specific guides: [Parser](docs/how-to-parser.md), [Convert](docs/how-to-convert.md), [Sanitizer](docs/how-to-sanitizer.md), [Validators](docs/how-to-validators.md), [Transformers](docs/how-to-transformers.md), [Edit](docs/how-to-edit.md), [View](docs/how-to-view.md), [Result — convert to your object for submit](docs/how-to-result.md).
 
 ## Schema Docs
 

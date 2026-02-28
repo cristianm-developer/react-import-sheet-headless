@@ -13,32 +13,30 @@ Edit operates on the **result** sheet. It does not re-run the full import; it on
 Use **`useSheetEditor(options?)`** inside **ImporterProvider** to get the result sheet, paginated data, and an **`editCell`** function.
 
 ```tsx
-const {
-  sheet,
-  editCell,
-  pageData,
-  totalPages,
-  isReady,
-} = useSheetEditor({
-  page: 1,
-  pageSize: 25,
-  debounceMs: 300,
-});
+const { sheet, editCell, removeRow, pageData, totalPages, isReady, changeLog, changeLogAsText } =
+  useSheetEditor({
+    page: 1,
+    pageSize: 25,
+    debounceMs: 300,
+  });
 ```
 
-| Option | Description |
-|--------|-------------|
-| **`page`** | 1-based page index (default `1`). |
-| **`pageSize`** | Rows per page (default `25`). |
+| Option           | Description                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **`page`**       | 1-based page index (default `1`).                                                                                        |
+| **`pageSize`**   | Rows per page (default `25`).                                                                                            |
 | **`debounceMs`** | If set, `editCell` debounces by this many ms before calling the Worker (avoids running the pipeline on every keystroke). |
 
 **Returns:**
 
 - **`sheet`** — The current result (validated + transformed) or `null` before import finishes.
 - **`editCell(params)`** — Call with `{ rowIndex, cellKey, value }` to apply an edit. Without `debounceMs`, returns `Promise<void>`; with debounce, the call is queued and returns immediately.
+- **`removeRow(rowIndex)`** — Call with the **global** row index (0-based) to remove that row from the sheet. Remaining rows are re-indexed so `row.index` matches array position. No Worker is used; the update is applied synchronously.
 - **`pageData`** — `{ page, pageSize, totalCount, totalPages, rows }` derived from `sheet` and your `page`/`pageSize`. **`rows`** are the same object references as in `sheet.rows` for that slice (structural sharing for React.memo).
 - **`totalPages`** — Derived from `totalCount` and `pageSize`.
 - **`isReady`** — Whether the edit Worker is ready.
+- **`changeLog`** — Read-only array of **ChangeLogEntry** (cell edits and row removals) applied during this session. Cleared when **processFile** is called again.
+- **`changeLogAsText`** — Human-readable string describing the same changes (e.g. `"Row 1, cell \"email\": set to \"a@b.com\"\nRow 2: removed"`). Useful for display or export. Updated in parallel with edits (non-blocking).
 
 ## Edit contract: rowIndex and cellKey
 
@@ -84,6 +82,25 @@ All of this runs in a **Web Worker** so the UI stays responsive even with heavy 
 ## Structural immutability
 
 Only the **edited row** and the **sheet** reference change; other rows keep the same reference. That allows **React.memo** on row components to avoid re-renders for rows that did not change.
+
+## Removing a row
+
+Call **`removeRow(rowIndex)`** with the **global** row index (same as `row.index`). The row is removed from the sheet and remaining rows are re-indexed (so indices stay 0, 1, 2, …). Use the same **row.index** from your table when rendering a “Delete row” button.
+
+```tsx
+<button type="button" onClick={() => removeRow(row.index)} aria-label="Remove row">
+  Remove
+</button>
+```
+
+## Change log (what the user fixed)
+
+The library keeps a **change log** of edits and row removals so you can show or export a summary of what the user did to fix the document.
+
+- **`changeLog`** — Array of **ChangeLogEntry**: `{ type: 'cell_edit', rowIndex, cellKey, value, previousValue?, timestamp }` or `{ type: 'row_remove', rowIndex, timestamp }`. Row numbers in the log are **1-based** for display.
+- **`changeLogAsText`** — String built from **`formatChangeLogAsText(changeLog)`** (exported from the package). Example: `"Row 1, cell \"email\": set to \"a@b.com\"\nRow 2: removed"`.
+
+The log is updated **in parallel** with each edit or remove (via a microtask), so it does not block the UI. It is cleared when the user starts a new import (**processFile**).
 
 ## Debounce and submit on blur
 

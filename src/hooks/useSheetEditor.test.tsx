@@ -46,11 +46,11 @@ describe('useSheetEditor', () => {
       return null;
     }
     expect(() => render(createElement(BadConsumer))).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
-  it('should return sheet, editCell, pageData, totalPages and isReady', () => {
+  it('should return sheet, editCell, pageData, totalPages, isReady and canEdit', () => {
     function Consumer() {
       const out = useSheetEditor({ page: 1, pageSize: 10 });
       return (
@@ -59,16 +59,62 @@ describe('useSheetEditor', () => {
           <span data-testid="totalPages">{out.totalPages}</span>
           <span data-testid="rowsLen">{out.pageData.rows.length}</span>
           <span data-testid="ready">{out.isReady ? 'yes' : 'no'}</span>
+          <span data-testid="canEdit">{out.canEdit ? 'yes' : 'no'}</span>
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, null, createElement(Consumer)),
-    );
+    render(createElement(ImporterProvider, null, createElement(Consumer)));
     expect(screen.getByTestId('sheet')).toHaveTextContent('null');
     expect(screen.getByTestId('totalPages')).toHaveTextContent('0');
     expect(screen.getByTestId('rowsLen')).toHaveTextContent('0');
     expect(screen.getByTestId('ready')).toHaveTextContent('yes');
+    expect(screen.getByTestId('canEdit')).toHaveTextContent('yes');
+  });
+
+  it('should set canEdit to false and no-op editCell and removeRow when submitDone is true', async () => {
+    const row0 = {
+      index: 0,
+      errors: [] as readonly unknown[],
+      cells: [
+        { key: 'a', value: 1, errors: [] as readonly unknown[] },
+        { key: 'b', value: 'x', errors: [] as readonly unknown[] },
+      ],
+    };
+    const mockSheet = createMockSheet([row0]);
+    function Consumer() {
+      const ctx = useImporterContext();
+      const { editCell, removeRow, canEdit } = useSheetEditor();
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              ctx.setResult(mockSheet);
+              ctx.setSubmitDone(true);
+            }}
+          >
+            setSheetAndSubmitDone
+          </button>
+          <button type="button" onClick={() => editCell({ rowIndex: 0, cellKey: 'a', value: 99 })}>
+            edit
+          </button>
+          <button type="button" onClick={() => removeRow(0)}>
+            remove
+          </button>
+          <span data-testid="canEdit">{canEdit ? 'yes' : 'no'}</span>
+          <span data-testid="cellValue">{String(ctx.result?.rows[0]?.cells[0]?.value ?? '')}</span>
+        </div>
+      );
+    }
+    render(createElement(ImporterProvider, { layout }, createElement(Consumer)));
+    fireEvent.click(screen.getByRole('button', { name: 'setSheetAndSubmitDone' }));
+    expect(screen.getByTestId('canEdit')).toHaveTextContent('no');
+    expect(screen.getByTestId('cellValue')).toHaveTextContent('1');
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    await waitFor(() => expect(mockRunEdit).not.toHaveBeenCalled());
+    expect(screen.getByTestId('cellValue')).toHaveTextContent('1');
+    fireEvent.click(screen.getByRole('button', { name: 'remove' }));
+    expect(screen.getByTestId('cellValue')).toHaveTextContent('1');
   });
 
   it('should return pageData and totalPages derived from sheet and page/pageSize', () => {
@@ -104,9 +150,7 @@ describe('useSheetEditor', () => {
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, null, createElement(SetResultThenShow)),
-    );
+    render(createElement(ImporterProvider, null, createElement(SetResultThenShow)));
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('totalPages')).toHaveTextContent('2');
     expect(screen.getByTestId('page')).toHaveTextContent('1');
@@ -135,30 +179,19 @@ describe('useSheetEditor', () => {
           <button type="button" onClick={() => ctx.setResult(mockSheet)}>
             setSheet
           </button>
-          <button
-            type="button"
-            onClick={() => editCell({ rowIndex: 0, cellKey: 'a', value: 99 })}
-          >
+          <button type="button" onClick={() => editCell({ rowIndex: 0, cellKey: 'a', value: 99 })}>
             edit
           </button>
           <span data-testid="cellValue">{String(cellValue ?? '')}</span>
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, { layout }, createElement(Consumer)),
-    );
+    render(createElement(ImporterProvider, { layout }, createElement(Consumer)));
     fireEvent.click(screen.getByRole('button', { name: 'setSheet' }));
     expect(screen.getByTestId('cellValue')).toHaveTextContent('1');
     fireEvent.click(screen.getByRole('button', { name: 'edit' }));
     await waitFor(() => {
-      expect(mockRunEdit).toHaveBeenCalledWith(
-        mockSheet,
-        layout,
-        0,
-        'a',
-        99,
-      );
+      expect(mockRunEdit).toHaveBeenCalledWith(mockSheet, layout, 0, 'a', 99);
     });
     await waitFor(() => {
       expect(screen.getByTestId('cellValue')).toHaveTextContent('99');
@@ -172,12 +205,55 @@ describe('useSheetEditor', () => {
       refs.push(editCell);
       return <span data-testid="count">{refs.length}</span>;
     }
-    const { rerender } = render(
-      createElement(ImporterProvider, null, createElement(Consumer)),
-    );
-    rerender(
-      createElement(ImporterProvider, null, createElement(Consumer)),
-    );
+    const { rerender } = render(createElement(ImporterProvider, null, createElement(Consumer)));
+    rerender(createElement(ImporterProvider, null, createElement(Consumer)));
     expect(refs[0]).toBe(refs[1]);
+  });
+
+  it('should remove row and append row_remove to changeLog when removeRow is called', async () => {
+    const row0 = {
+      index: 0,
+      errors: [] as readonly unknown[],
+      cells: [
+        { key: 'a', value: 1, errors: [] as readonly unknown[] },
+        { key: 'b', value: 'x', errors: [] as readonly unknown[] },
+      ],
+    };
+    const row1 = {
+      index: 1,
+      errors: [] as readonly unknown[],
+      cells: [
+        { key: 'a', value: 2, errors: [] as readonly unknown[] },
+        { key: 'b', value: 'y', errors: [] as readonly unknown[] },
+      ],
+    };
+    const mockSheet = createMockSheet([row0, row1]);
+    function Consumer() {
+      const ctx = useImporterContext();
+      const { removeRow, changeLog, changeLogAsText } = useSheetEditor();
+      return (
+        <div>
+          <button type="button" onClick={() => ctx.setResult(mockSheet)}>
+            setSheet
+          </button>
+          <button type="button" onClick={() => removeRow(1)}>
+            removeRow1
+          </button>
+          <span data-testid="rowsCount">{ctx.result?.rows.length ?? 0}</span>
+          <span data-testid="logLen">{changeLog.length}</span>
+          <span data-testid="logText">{changeLogAsText || '(empty)'}</span>
+        </div>
+      );
+    }
+    render(createElement(ImporterProvider, null, createElement(Consumer)));
+    fireEvent.click(screen.getByRole('button', { name: 'setSheet' }));
+    expect(screen.getByTestId('rowsCount')).toHaveTextContent('2');
+    expect(screen.getByTestId('logLen')).toHaveTextContent('0');
+    fireEvent.click(screen.getByRole('button', { name: 'removeRow1' }));
+    expect(screen.getByTestId('rowsCount')).toHaveTextContent('1');
+    await waitFor(() => {
+      expect(screen.getByTestId('logLen')).toHaveTextContent('1');
+      expect(screen.getByTestId('logText')).toHaveTextContent('Row 2: removed');
+    });
   });
 });

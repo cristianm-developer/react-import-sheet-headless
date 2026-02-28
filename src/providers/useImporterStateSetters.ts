@@ -5,8 +5,8 @@ import type { ParserEngine, SheetLayout } from '../types/index.js';
 import type { ImporterContextValue, UseImporterStateSettersDeps } from './types.js';
 
 export function useImporterStateSetters(
-  deps: UseImporterStateSettersDeps,
-):   Pick<
+  deps: UseImporterStateSettersDeps
+): Pick<
   ImporterContextValue,
   | 'setLayout'
   | 'setEngine'
@@ -19,64 +19,104 @@ export function useImporterStateSetters(
   | 'setSanitizedSheet'
   | 'setConvertResultData'
   | 'setMetrics'
+  | 'setSubmitDone'
 > {
   const { setState, setLayoutState, setEngineState } = deps;
 
-  const setFile = useCallback((file: File | null) => {
-    setState((prev) => ({ ...prev, file }));
-  }, [setState]);
+  const setFile = useCallback(
+    (file: File | null) => {
+      setState((prev) => ({ ...prev, file }));
+    },
+    [setState]
+  );
 
-  const setRawData = useCallback((rawData: ImporterState['rawData']) => {
-    setState((prev) => ({ ...prev, rawData }));
-  }, [setState]);
+  const setRawData = useCallback(
+    (rawData: ImporterState['rawData']) => {
+      setState((prev) => ({ ...prev, rawData }));
+    },
+    [setState]
+  );
 
-  const setDocumentHash = useCallback((documentHash: string | null) => {
-    setState((prev) => ({ ...prev, documentHash }));
-  }, [setState]);
+  const setDocumentHash = useCallback(
+    (documentHash: string | null) => {
+      setState((prev) => ({ ...prev, documentHash }));
+    },
+    [setState]
+  );
 
-  const setStatus = useCallback((status: ImporterStatus) => {
-    setState((prev) => ({ ...prev, status }));
-  }, [setState]);
+  const setStatus = useCallback(
+    (status: ImporterStatus) => {
+      setState((prev) => ({ ...prev, status }));
+    },
+    [setState]
+  );
 
-  const setResult = useCallback((result: ImporterState['result']) => {
-    setState((prev) => ({ ...prev, result }));
-  }, [setState]);
+  const setResult = useCallback(
+    (result: ImporterState['result']) => {
+      setState((prev) => ({ ...prev, result }));
+    },
+    [setState]
+  );
 
-  const setConvertedSheet = useCallback((convertedSheet: ImporterState['convertedSheet']) => {
-    setState((prev) => ({ ...prev, convertedSheet, convertResultData: null }));
-  }, [setState]);
+  const setConvertedSheet = useCallback(
+    (convertedSheet: ImporterState['convertedSheet']) => {
+      setState((prev) => ({ ...prev, convertedSheet, convertResultData: null }));
+    },
+    [setState]
+  );
 
-  const setSanitizedSheet = useCallback((sanitizedSheet: ImporterState['sanitizedSheet']) => {
-    setState((prev) => ({ ...prev, sanitizedSheet }));
-  }, [setState]);
+  const setSanitizedSheet = useCallback(
+    (sanitizedSheet: ImporterState['sanitizedSheet']) => {
+      setState((prev) => ({ ...prev, sanitizedSheet }));
+    },
+    [setState]
+  );
 
   const setConvertResultData = useCallback(
     (
       dataOrUpdater:
         | ImporterState['convertResultData']
-        | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData']),
+        | ((prev: ImporterState['convertResultData']) => ImporterState['convertResultData'])
     ) => {
       setState((prev) => ({
         ...prev,
         convertResultData:
-          typeof dataOrUpdater === 'function' ? dataOrUpdater(prev.convertResultData) : dataOrUpdater,
+          typeof dataOrUpdater === 'function'
+            ? dataOrUpdater(prev.convertResultData)
+            : dataOrUpdater,
         convertedSheet: typeof dataOrUpdater === 'function' ? prev.convertedSheet : null,
       }));
     },
-    [setState],
+    [setState]
   );
 
-  const setMetrics = useCallback((metrics: PipelineMetrics | null) => {
-    setState((prev) => ({ ...prev, metrics }));
-  }, [setState]);
+  const setMetrics = useCallback(
+    (metrics: PipelineMetrics | null) => {
+      setState((prev) => ({ ...prev, metrics }));
+    },
+    [setState]
+  );
 
-  const setLayout = useCallback((next: SheetLayout | null) => {
-    setLayoutState(next);
-  }, [setLayoutState]);
+  const setSubmitDone = useCallback(
+    (submitDone: boolean) => {
+      setState((prev) => ({ ...prev, submitDone }));
+    },
+    [setState]
+  );
 
-  const setEngine = useCallback((next: ParserEngine | null) => {
-    setEngineState(next);
-  }, [setEngineState]);
+  const setLayout = useCallback(
+    (next: SheetLayout | null) => {
+      setLayoutState(next);
+    },
+    [setLayoutState]
+  );
+
+  const setEngine = useCallback(
+    (next: ParserEngine | null) => {
+      setEngineState(next);
+    },
+    [setEngineState]
+  );
 
   return {
     setLayout,
@@ -90,5 +130,6 @@ export function useImporterStateSetters(
     setSanitizedSheet,
     setConvertResultData,
     setMetrics,
+    setSubmitDone,
   };
 }

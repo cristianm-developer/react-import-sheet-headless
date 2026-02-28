@@ -29,7 +29,11 @@ The Worker **does not** return the full sheet. It returns **TransformResult**: `
 
 ## Built-in transforms
 
-- **`toUpperCase`** (cell): converts string values to uppercase; non-strings unchanged. Use **`CellToUpperTransform.Register(registerTransform)`** in the layout or register manually; id `'toUpperCase'`.
+All built-in transforms are **cell-level**. Use **`CellXTransform.Register(registerTransform)`** in the layout or register manually with **`registerTransform(id, fn, { type: 'cell' })`**. Full list and params: [Transformers reference](transformers.md).
+
+- **String:** `toUpperCase`, `toLowerCase`, `slice`, `replace`, `replaceByRegex`, `fillStart`, `fillEnd`, `extractByRegex`
+- **Number:** `numberAdd`, `numberMultiply`, `numberDivide`, `numberSubtract`, `numberRound` (mode: round/ceil/floor), `numberAbs`, `numberSqrt`, `numberLimit` (min/max clamp), `numberPercent` (param: total)
+- **Date:** `dateToOnlyTime`, `dateToOnlyDate`, `dateToTimeDate`, `dateToUtc`, `dateLimit` (min/max), `dateAdd`, `dateSubtract` (params: days, hours, minutes, seconds, ms, months, years)
 
 ## Running the Transform
 

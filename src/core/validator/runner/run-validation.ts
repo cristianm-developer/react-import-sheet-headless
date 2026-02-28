@@ -20,7 +20,7 @@ export interface ValidatorGetters {
 
 function createThrottledProgress(
   totalRows: number,
-  onProgress: (d: ValidatorProgressDetail) => void,
+  onProgress: (d: ValidatorProgressDetail) => void
 ): (processed: number) => void {
   let lastTime = 0;
   let lastPercent = -1;
@@ -49,7 +49,7 @@ export async function runValidation(
   sheetLayout: SheetLayout,
   getters: ValidatorGetters,
   onProgress?: (d: ValidatorProgressDetail) => void,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ValidatorDelta> {
   const totalRows = sanitizedSheet.rows.length;
   const fields = sheetLayout.fields;
@@ -69,7 +69,11 @@ export async function runValidation(
     }
     const rowErrors = runRowValidators(row, sheetLayout, getters.getRowValidator);
     for (const err of rowErrors) {
-      errors.push({ rowIndex: row.index, error: err });
+      if (err.cellKey !== undefined && err.cellKey !== '') {
+        errors.push({ rowIndex: row.index, cellKey: err.cellKey, error: err });
+      } else {
+        errors.push({ rowIndex: row.index, error: err });
+      }
     }
     reportProgress(i + 1);
   }
@@ -82,7 +86,7 @@ export async function runValidation(
     sanitizedSheet,
     sheetLayout,
     getters.getTableValidator,
-    signal,
+    signal
   );
   errors.push(...tableErrors);
 

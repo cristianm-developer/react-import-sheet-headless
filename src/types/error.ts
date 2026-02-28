@@ -5,4 +5,6 @@ export interface SheetError {
   readonly params?: Readonly<Record<string, unknown>>;
   readonly level?: SheetErrorLevel;
   readonly message?: string;
+  readonly rowIndex?: number;
+  readonly cellKey?: string;
 }

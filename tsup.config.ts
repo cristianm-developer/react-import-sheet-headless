@@ -9,7 +9,7 @@ export default defineConfig({
       'transform.worker': 'src/core/transform/worker/transform.worker.ts',
       'edit.worker': 'src/core/editor/worker/edit.worker.ts',
     },
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     minify: true,
     external: ['react', 'react-dom'],

@@ -10,6 +10,46 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-02-28 — Convert: required/optional columns, extra columns ignored, layoutError
+
+**What changed:** **(1)** **SheetLayoutField** now has **`required?: boolean`** (default **true** when omitted). **(2)** **ColumnMismatch** has **`required?: boolean`** so the UI can distinguish required vs optional missing columns. **(3)** **Convert:** Extra document columns (no layout mapping) are **ignored** (no error); only layout fields appear in ConvertedSheet. **(4)** Conversion **succeeds** when all **required** layout fields are mapped; optional fields may be missing (cells become **null**). **(5)** When any **required** column is missing, result is **convertResult** with **`layoutError: true`** and **ConvertMismatchData** includes **`layoutError?: boolean`**. **(6)** **match-headers**: sets **required** on each mismatch from **sheetLayout.fields[].required**. **(7)** **run-convert**: success if all required mapped; **layoutError** true when any required mismatch. **(8)** Tests: match-headers (required true/false on mismatch); run-convert (success with optional missing, layoutError when required missing, extra columns ignored). **(9)** Docs: **docs/how-to-convert.md** (required/optional, extra columns, layoutError), **ai-context.md** (§4.1 SheetLayout **required**, §4.2 Convert), **.cursor/docs/Construction Steps/4. Convert.md** (layout and ConvertResult contract).
+
+**Why:** Allow documents with more columns than needed (ignore extras); require all required columns to be present or mappable; signal total layout error when the document has fewer columns than required (e.g. 3 columns vs 5 required).
+
+**Affected files:** src/types/sheet-layout.ts, src/core/convert/types/column-mismatch.ts, src/core/convert/types/convert-mismatch-data.ts, src/core/convert/match-headers.ts, src/core/convert/run-convert.ts, src/core/convert/match-headers.test.ts, src/core/convert/run-convert.test.ts, docs/how-to-convert.md, ai-context.md, .cursor/docs/Construction Steps/4. Convert.md, .cursor/history.md.
+
+### 2026-02-27 — Examples split by topic (layout, sanitizers, validators, transforms, implementation, progress)
+
+**What changed:** **(1)** Split **examples/ImportExample.md** into separate docs: **layout.md** (SheetLayout and fields), **sanitizers.md** (trim, collapseSpaces, registration), **validators.md** (required, minLength, SheetError, registration), **transforms.md** (toUpperCase, capitalize, registration), **implementation.md** (ImporterProvider, useImporter, registration in useEffect, processFile, useImporterStatus, useSheetData), **progress.md** (useImporterStatus, useImporterEventTarget, useImporterProgressSubscription, phase/percent and progress bar). **(2)** **ImportExample.md** is now an index that links to these parts. **(3)** **examples/README.md** updated with a "By topic" table pointing to each file.
+
+**Why:** Let users open only the example they need (layout, sanitizer/validator/transform, full implementation, or progress UI) instead of one long document.
+
+**Affected files:** examples/layout.md (new), examples/sanitizers.md (new), examples/validators.md (new), examples/transforms.md (new), examples/implementation.md (new), examples/progress.md (new), examples/ImportExample.md, examples/README.md, .cursor/history.md.
+
+### 2026-02-27 — Fuzzy header matching in Convert (opt-in, default off)
+
+**What changed:** **(1)** **ConvertOptions** now has **`fuzzyHeaders?: boolean`** (default **false**) and **`fuzzyThreshold?: number`** (default 0.8 when fuzzy is on). **(2)** **matchHeadersToLayout** (convert) uses **mapHeaders** from **parser/utils/fuzzy-match** when **`fuzzyHeaders === true`**: after exact match (and headerToFieldMap), unmatched layout fields are matched against remaining file headers by Levenshtein similarity ≥ threshold; assignment is greedy by score. **(3)** Parser/convert flow unchanged when fuzzy is off. **(4)** Tests: match-headers (fuzzy off by default; on with threshold; below threshold); run-convert (success with fuzzyHeaders when headers similar). **(5)** Docs: **docs/how-to-convert.md** (Fuzzy header matching, ConvertOptions), **ai-context.md** (convert options).
+
+**Why:** Allow similar headers (e.g. "Nombre" → "Name") to be matched automatically when the consumer opts in; keep exact matching as default for predictability.
+
+**Affected files:** src/core/convert/types/convert-options.ts, src/core/convert/match-headers.ts, src/core/convert/match-headers.test.ts, src/core/convert/run-convert.test.ts, docs/how-to-convert.md, ai-context.md, .cursor/history.md.
+
+### 2026-02-27 — SheetError optional rowIndex/cellKey; row validator can target a cell
+
+**What changed:** **(1)** **SheetError** (`src/types/error.ts`) now has optional **`rowIndex?: number`** and **`cellKey?: string`**. Sheet-level validators can set them to indicate where the error is (even though validation runs at sheet level). **(2)** Row-level validators can return errors with **`cellKey`**; the runner then emits a cell delta item so the error is applied to that cell instead of the row. **(3)** **run-validation.ts**: when a row validator returns an error with `cellKey`, the delta pushes `{ rowIndex, cellKey, error }` (cell item); otherwise `{ rowIndex, error }` (row item). **(4)** Tests: patch-delta (row error with cellKey applies to cell; sheet-level error preserves rowIndex/cellKey); run-validation (row validator with cellKey emits cell delta). **(5)** Docs: **docs/how-to-validators.md** (error shape with rowIndex/cellKey), **ai-context.md** (SheetError contract).
+
+**Why:** Allow validators to pinpoint errors: sheet errors can reference a row/cell for UI highlighting; row errors can target a specific cell so the error appears on that cell.
+
+**Affected files:** src/types/error.ts, src/core/validator/runner/run-validation.ts, src/core/validator/patch-delta.test.ts, src/core/validator/runner/run-validation.test.ts, docs/how-to-validators.md, ai-context.md, .cursor/history.md.
+
+### 2026-02-27 — Examples as documentation (ImportExample.md)
+
+**What changed:** **(1)** Replaced **`examples/ImportExample.tsx`** with **`examples/ImportExample.md`**: a **documentation-only** example (not meant to be executed) that explains with commented code blocks how to define a layout and fields, register one normal and one custom sanitizer (trim, collapseSpaces), one normal and one custom validator (required, minLength), one normal and one custom transform (toUpperCase, capitalize), and wire them in a component (ImporterProvider, useImporter, registration, useImporterStatus, useSheetData). **(2)** **`examples/README.md`** updated to describe the doc as the main example and point to ImportExample.md. **(3)** Root **README.md** now links to examples/ImportExample.md instead of the folder.
+
+**Why:** Serve the example as a readable, copy-paste-friendly doc with explanations so users understand how to use layout, fields, and controllers without running code.
+
+**Affected files:** examples/ImportExample.md (new), examples/ImportExample.tsx (removed), examples/README.md, README.md, .cursor/history.md.
+
 ### 2026-02-27 — Sanitizer docs aligned with validators and transformers
 
 **What changed:** **(1)** Created **`docs/sanitizers.md`** as the sanitizers reference (compatibility table, layout fields, link to how-to), matching the structure of `docs/validators.md` and `docs/transformers.md`. **(2)** Updated **`docs/how-to-sanitizer.md`** to mirror the validators/transformers how-to: layout configuration (fields[].sanitizers, rowSanitizers, sheetSanitizers), explicit section **"Adding your own vs using built-in"** (register custom with registerSanitizer, or register predefined e.g. registerTrimSanitizer(registerSanitizer) and use id in layout), and reference to the new sanitizers.md. **(3)** **README.md** Schema Docs: added Sanitizers row and "By level" bullet so validators, sanitizers, and transformers are documented equally. **(4)** **ai-context.md**: under Sanitizers added that users can add their own or use built-in (same pattern as validators/transforms); added controller reference links (validators.md, sanitizers.md, transformers.md).
@@ -137,6 +177,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Fulfil Construction Step 3 — universal parser (xlsx/xls/ods/csv) in Worker, two-phase load + parseAll, documentHash by streaming, integration with Setting (`rawData`, `status`), progress via EventTarget.
 
 **Affected files:**
+
 - `src/types/raw-sheet.ts`, `src/types/index.ts`, `src/index.ts` — RawSheetCellValue, documentHash, RawParseResult, parserMeta; exports.
 - New: `src/core/parser/` (types/, engines/, worker/, hooks/, adapter.ts, hash.ts), `src/hooks/useImportSheet.ts`.
 - `src/providers/ImporterProvider.test.tsx`, `src/hooks/useSheetData.test.tsx` — documentHash in mock RawSheet/Sheet.
@@ -150,6 +191,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Match Architecture.md: public vs internal separation; consumers use only Provider and public hooks; Context and useImporterContext are internal (providers/).
 
 **Affected files:**
+
 - New: `src/providers/*` (ImporterContext, state, types, useImporterStateSetters, useImporterActions, useImporterContext, ImporterProvider, index, ImporterProvider.test).
 - Removed: `src/ImporterContext/*` (all files).
 - `src/index.ts` — exports from providers, no useImporterContext/ImporterContextValue.
@@ -163,6 +205,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Align with NPM-style libraries (e.g. TanStack Query, Apollo Client): clear separation so consumers only touch Provider, public hooks, and types; internal implementation stays under `providers/` and is not re-exported.
 
 **Affected files:**
+
 - `.cursor/docs/Architecture.md` — New Public API vs internal section; Root layout `providers/`; Hooks (public vs internal); Barrels; Anchors; Types placement examples.
 
 ### 2026-02-27 — Shared code moved from src/core/shared to src/shared
@@ -172,6 +215,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Shared utilities belong at `src/shared`, not inside `core`; core is for process-specific modules only.
 
 **Affected files:**
+
 - New: `src/shared/registry/` (Registry.ts, types.ts, index.ts, Registry.test.ts).
 - Removed: `src/core/shared/registry/` (all four files).
 - `src/ImporterContext/Provider.tsx`, `src/ImporterContext/useImporterActions.ts`, `src/ImporterContext/types.ts`, `src/index.ts` — imports now use `../shared/registry` or `./shared/registry`.
@@ -184,6 +228,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Single, clear convention so types are always in the right place and each type has its own file for discoverability and consistency.
 
 **Affected files:**
+
 - `.cursor/docs/Architecture.md` — Types section, conventions, anchors, ImporterContext tree.
 
 ### 2026-02-27 — ImporterContext split into folder (max 120 lines per file)
@@ -193,6 +238,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Rules §4 File Size & Modularity require source files ≤120 lines; split by related context (state, types, actions, Provider, hook) with single responsibility per file.
 
 **Affected files:**
+
 - New: `src/ImporterContext/*` (state, types, contextInstance, useImporterStateSetters, useImporterActions, Provider, useImporterContext, index, ImporterContext.test).
 - Removed: `src/ImporterContext.tsx`, `src/ImporterContext.test.tsx`.
 - `src/index.ts`, `src/hooks/useImporter.ts`, `src/hooks/useImporterStatus.ts`, `src/hooks/useSheetData.ts`, `src/hooks/useSheetEditor.ts`, `src/hooks/useImporterEventTarget.ts` and their tests — imports updated to `ImporterContext/index.js`.
@@ -205,6 +251,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Higher test coverage and smaller files improve maintainability and readability; 120-line cap and folder split keep modules easy to navigate.
 
 **Affected files:**
+
 - `.cursor/rules/typescript-standards.mdc` — §3 coverage 95%, Coverage-first; new §4 File Size & Modularity; §§5–12 renumbered.
 - `vitest.config.ts` — coverage thresholds 95%.
 
@@ -215,12 +262,13 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Establish the foundation for the import pipeline: single source of truth (Provider), typed state (RawSheet, Sheet), registry-based validators/sanitizers/transforms (Zero-Bundle-Size), and stable hooks for consumers.
 
 **Affected files:**
+
 - `src/types/` — error.ts, raw-sheet.ts, sheet.ts, sheet-layout.ts, importer-state.ts, index.ts.
 - `src/core/shared/registry/` — Registry.ts, types.ts, index.ts, Registry.test.ts.
 - `src/ImporterContext.tsx`, `src/ImporterContext.test.tsx` (new); removed `src/ImportProvider.tsx`, `src/ImportProvider.test.tsx`, `src/types.ts`.
 - `src/hooks/` — useImporter.ts, useImporterStatus.ts, useSheetData.ts, useSheetEditor.ts, useImporterEventTarget.ts, index.ts.
 - `src/index.ts` — exports ImporterProvider, ImportProvider alias, hooks, types, Registry.
-- `vitest.config.ts` — coverage exclude for **/index.ts.
+- `vitest.config.ts` — coverage exclude for \*\*/index.ts.
 - `eslint.config.ts` — argsIgnorePattern for no-unused-vars.
 - `.cursor/docs/Architecture.md` — Folder structure (types files, ImporterContext, registry files, hooks list).
 
@@ -231,16 +279,18 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Ensure the library does not break existing consumers when evolving the API, types, or layout; provide a clear migration path and, when needed, automatic handling of legacy usage.
 
 **Affected files:**
+
 - `.cursor/rules/typescript-standards.mdc` — New §11 Backward Compatibility.
 - `.cursor/docs/Architecture.md` — Anchors table (new backward-compatibility row); Product architecture §4 Backward compatibility.
 
 ### 2026-02-27 — Provider as brain, Hooks as interface (events only, no Zustand)
 
-**What changed:** Architecture and Construction Step 2 updated so the **Provider** is the single source of truth ("brain": layout, file, state, Workers lifecycle) and **Hooks** are the consumer interface ("nerves"). Four specialized hooks: **`useImporter({ layout })`** (entry point; **`processFile(file)`**, register*, abort), **`useImporterStatus()`** (status, progress), **`useSheetData()`** (sheet, errors), **`useSheetEditor()`** (editCell). Progress and high-frequency updates use **EventTarget** only; **no Zustand**.
+**What changed:** Architecture and Construction Step 2 updated so the **Provider** is the single source of truth ("brain": layout, file, state, Workers lifecycle) and **Hooks** are the consumer interface ("nerves"). Four specialized hooks: **`useImporter({ layout })`** (entry point; **`processFile(file)`**, register\*, abort), **`useImporterStatus()`** (status, progress), **`useSheetData()`** (sheet, errors), **`useSheetEditor()`** (editCell). Progress and high-frequency updates use **EventTarget** only; **no Zustand**.
 
 **Why:** For a pipeline-based headless import library, one central Provider improves persistence across UI steps (Carga → Mapeo → Validación), avoids prop drilling, and keeps Worker lifecycle and state in one place. Small, focused hooks improve Tree Shaking and clarity. Events (EventTarget) keep progress out of Context to avoid mass re-renders.
 
 **Affected files:**
+
 - `.cursor/docs/Architecture.md` — Section "Provider as brain, Hooks as interface (no Zustand)"; table of four hooks; example flow; Hooks folder section; Flow summary step 1; Core modules paragraph.
 - `.cursor/docs/Construction Steps/2. Setting.md` — Handshake example (ImporterProvider, useImporter with processFile, useImporterStatus, useSheetData, useSheetEditor); Plan steps 2–3 (Provider as brain, four hooks); API en Provider/Hooks; Resultado esperado; tests (hooks outside provider).
 
@@ -259,6 +309,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Establish quality pipeline: Conventional Commits, lint+format on commit, tests+coverage on push; CJS/ESM build ready for publish.
 
 **Affected files:**
+
 - `eslint.config.ts` (new), `.prettierrc`, `.prettierignore`, `.commitlintrc.json` (new)
 - `.husky/pre-commit`, `.husky/pre-push`, `.husky/commit-msg` (new)
 - `package.json` — scripts (lint, test with --coverage, prepare), lint-staged, exports order
@@ -274,6 +325,7 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 **Why:** Permitir Tree Shaking perfecto (Zero-Bundle-Size): si el usuario no importa/registra el validador de email, ese código no llega al bundle final. Evitar "black box" assumptions en Workers (timeout & recovery). Soportar persistencia con versionado de esquema (IndexedDB). Permitir I18n de errores (UI traduce código + params).
 
 **Affected files:**
+
 - `.cursor/docs/Architecture.md` — Añadida "Maturity & resilience" (4 subsecciones), actualizada estructura de carpetas con `core/shared/registry/` y `utils/presets/`, añadida descripción de Registry Pattern.
 - `.cursor/docs/Construction Steps/2. Setting.md` — Ampliado SheetLayout con identificadores, añadida sección completa "Registro agnóstico", Provider con tres `Registry` internos, API de registro (`registerValidator`, `registerSanitizer`, `registerTransform`), SheetLayout con campo `version`, Error/SheetError con `code` + `params`.
 - `.cursor/docs/Construction Steps/3. Parser.md` — Añadida referencia a timeout & recovery.

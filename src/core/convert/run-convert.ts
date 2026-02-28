@@ -17,7 +17,7 @@ export function runConvert(
   rawSheet: RawSheet,
   sheetLayout: SheetLayout,
   options: ConvertOptions = {},
-  existing?: RunConvertExisting,
+  existing?: RunConvertExisting
 ): RunConvertResult {
   const layoutFieldNames = Object.keys(sheetLayout.fields) as string[];
   const columnOrder = existing?.columnOrder?.length
@@ -29,20 +29,27 @@ export function runConvert(
     rawSheet,
     sheetLayout,
     headerToFieldMap,
-    options,
+    options
   );
 
+  const requiredFieldNames = layoutFieldNames.filter(
+    (f) => sheetLayout.fields[f]?.required !== false
+  );
+  const allRequiredMatched = requiredFieldNames.every((f) => fieldToHeader[f] != null);
   const allMatched = mismatches.length === 0;
-  if (allMatched) {
+
+  if (allMatched || allRequiredMatched) {
     const sheet = buildConvertedSheet(rawSheet, sheetLayout, columnOrder, fieldToHeader);
     return { kind: 'success', sheet };
   }
 
+  const layoutError = mismatches.some((m) => m.required === true);
   return {
     kind: 'mismatch',
     headersFound: [...rawSheet.headers],
     mismatches,
     columnOrder: [...columnOrder],
     headerToFieldMap: { ...headerToFieldMap },
+    layoutError,
   };
 }

@@ -1,7 +1,9 @@
 export type FieldValueType = 'number' | 'string' | 'bool' | 'date';
 export type FieldInputType = 'input' | 'checkbox';
 
-export type ValidatorOrWithParams = string | { readonly name: string; readonly params?: Readonly<Record<string, unknown>> };
+export type ValidatorOrWithParams =
+  | string
+  | { readonly name: string; readonly params?: Readonly<Record<string, unknown>> };
 
 export interface SheetLayoutField {
   readonly name: string;
@@ -12,6 +14,7 @@ export interface SheetLayoutField {
   readonly transformations?: readonly ValidatorOrWithParams[];
   readonly valueType?: FieldValueType;
   readonly inputType?: FieldInputType;
+  readonly required?: boolean;
 }
 
 export interface SheetLayout {

@@ -72,4 +72,74 @@ describe('matchHeadersToLayout', () => {
     expect(mismatches.length).toBeGreaterThan(0);
     expect(mismatches.some((m) => m.expected === 'Email')).toBe(true);
   });
+
+  it('should not fuzzy-match when fuzzyHeaders is false (default)', () => {
+    const raw = makeRawSheet(['Nombre', 'Email'], [['Alice', 'a@b.com']]);
+    const layout = makeLayout(['Name', 'Email']);
+    const { fieldToHeader, mismatches } = matchHeadersToLayout(raw, layout);
+    expect(mismatches).toHaveLength(1);
+    expect(fieldToHeader['Name']).toBeNull();
+    expect(fieldToHeader['Email']).toBe('Email');
+  });
+
+  it('should match similar headers when fuzzyHeaders is true', () => {
+    const raw = makeRawSheet(['Nombre', 'Email'], [['Alice', 'a@b.com']]);
+    const layout = makeLayout(['Name', 'Email']);
+    const { fieldToHeader, mismatches } = matchHeadersToLayout(
+      raw,
+      layout,
+      {},
+      {
+        fuzzyHeaders: true,
+        fuzzyThreshold: 0.5,
+      }
+    );
+    expect(mismatches).toHaveLength(0);
+    expect(fieldToHeader['Name']).toBe('Nombre');
+    expect(fieldToHeader['Email']).toBe('Email');
+  });
+
+  it('should not match when fuzzyHeaders is true but similarity below threshold', () => {
+    const raw = makeRawSheet(['xyz', 'Email'], [['Alice', 'a@b.com']]);
+    const layout = makeLayout(['Name', 'Email']);
+    const { fieldToHeader, mismatches } = matchHeadersToLayout(
+      raw,
+      layout,
+      {},
+      {
+        fuzzyHeaders: true,
+        fuzzyThreshold: 0.99,
+      }
+    );
+    expect(mismatches).toHaveLength(1);
+    expect(fieldToHeader['Name']).toBeNull();
+    expect(fieldToHeader['Email']).toBe('Email');
+  });
+
+  it('should set required true on mismatch when field has no required flag', () => {
+    const raw = makeRawSheet(['Email'], [['a@b.com']]);
+    const layout: SheetLayout = {
+      name: 'Test',
+      version: '1',
+      fields: { Email: { name: 'Email' }, Name: { name: 'Name' } },
+    };
+    const { mismatches } = matchHeadersToLayout(raw, layout);
+    expect(mismatches).toHaveLength(1);
+    expect(mismatches[0]).toMatchObject({ expected: 'Name', required: true });
+  });
+
+  it('should set required false on mismatch when field has required: false', () => {
+    const raw = makeRawSheet(['Email'], [['a@b.com']]);
+    const layout: SheetLayout = {
+      name: 'Test',
+      version: '1',
+      fields: {
+        Email: { name: 'Email' },
+        Notes: { name: 'Notes', required: false },
+      },
+    };
+    const { mismatches } = matchHeadersToLayout(raw, layout);
+    expect(mismatches).toHaveLength(1);
+    expect(mismatches[0]).toMatchObject({ expected: 'Notes', required: false });
+  });
 });

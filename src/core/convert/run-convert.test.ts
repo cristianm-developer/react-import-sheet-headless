@@ -53,10 +53,15 @@ describe('runConvert', () => {
   it('should use existing columnOrder and headerToFieldMap when provided', () => {
     const raw = makeRawSheet(['Col1', 'Col2'], [['a@b.com', 'Alice']]);
     const layout = makeLayout(['Email', 'Name']);
-    const result = runConvert(raw, layout, {}, {
-      columnOrder: ['Name', 'Email'],
-      headerToFieldMap: { Col1: 'Email', Col2: 'Name' },
-    });
+    const result = runConvert(
+      raw,
+      layout,
+      {},
+      {
+        columnOrder: ['Name', 'Email'],
+        headerToFieldMap: { Col1: 'Email', Col2: 'Name' },
+      }
+    );
     expect(result.kind).toBe('success');
     if (result.kind === 'success') {
       expect(result.sheet.headers).toEqual(['Name', 'Email']);
@@ -67,20 +72,85 @@ describe('runConvert', () => {
     }
   });
 
+  it('should return ConvertSuccess with fuzzyHeaders when headers are similar', () => {
+    const raw = makeRawSheet(['Nombre', 'E-mail'], [['Alice', 'a@b.com']]);
+    const layout = makeLayout(['Name', 'Email']);
+    const result = runConvert(raw, layout, { fuzzyHeaders: true, fuzzyThreshold: 0.5 });
+    expect(result.kind).toBe('success');
+    if (result.kind === 'success') {
+      expect(result.sheet.rows[0]?.cells.find((c) => c.key === 'Name')?.value).toBe('Alice');
+      expect(result.sheet.rows[0]?.cells.find((c) => c.key === 'Email')?.value).toBe('a@b.com');
+    }
+  });
+
   it('should return ConvertSuccess after applying mapping via existing', () => {
     const raw = makeRawSheet(['File Email', 'File Name'], [['x@y.com', 'Bob']]);
     const layout = makeLayout(['Email', 'Name']);
     const first = runConvert(raw, layout);
     expect(first.kind).toBe('mismatch');
     if (first.kind !== 'mismatch') return;
-    const withMap = runConvert(raw, layout, {}, {
-      columnOrder: first.columnOrder,
-      headerToFieldMap: { 'File Email': 'Email', 'File Name': 'Name' },
-    });
+    const withMap = runConvert(
+      raw,
+      layout,
+      {},
+      {
+        columnOrder: first.columnOrder,
+        headerToFieldMap: { 'File Email': 'Email', 'File Name': 'Name' },
+      }
+    );
     expect(withMap.kind).toBe('success');
     if (withMap.kind === 'success') {
       expect(withMap.sheet.rows[0]?.cells.find((c) => c.key === 'Email')?.value).toBe('x@y.com');
       expect(withMap.sheet.rows[0]?.cells.find((c) => c.key === 'Name')?.value).toBe('Bob');
+    }
+  });
+
+  it('should return success when all required columns are mapped and optional is missing', () => {
+    const raw = makeRawSheet(['Email', 'Name'], [['a@b.com', 'Alice']]);
+    const layout: SheetLayout = {
+      name: 'Test',
+      version: '1',
+      fields: {
+        Email: { name: 'Email' },
+        Name: { name: 'Name' },
+        Notes: { name: 'Notes', required: false },
+      },
+    };
+    const result = runConvert(raw, layout);
+    expect(result.kind).toBe('success');
+    if (result.kind === 'success') {
+      expect(result.sheet.headers).toEqual(['Email', 'Name', 'Notes']);
+      const row0 = result.sheet.rows[0];
+      expect(row0?.cells.find((c) => c.key === 'Email')?.value).toBe('a@b.com');
+      expect(row0?.cells.find((c) => c.key === 'Name')?.value).toBe('Alice');
+      expect(row0?.cells.find((c) => c.key === 'Notes')?.value).toBeNull();
+    }
+  });
+
+  it('should return mismatch with layoutError when a required column is missing', () => {
+    const raw = makeRawSheet(['A', 'B', 'C'], [['1', '2', '3']]);
+    const layout = makeLayout(['A', 'B', 'C', 'D', 'E']);
+    const result = runConvert(raw, layout);
+    expect(result.kind).toBe('mismatch');
+    if (result.kind === 'mismatch') {
+      expect(result.layoutError).toBe(true);
+      expect(result.mismatches.length).toBe(2);
+      expect(result.mismatches.some((m) => m.expected === 'D')).toBe(true);
+      expect(result.mismatches.some((m) => m.expected === 'E')).toBe(true);
+    }
+  });
+
+  it('should ignore extra document columns and only use mapped layout columns', () => {
+    const raw = makeRawSheet(
+      ['Email', 'Name', 'Extra1', 'Extra2'],
+      [['a@b.com', 'Alice', 'x', 'y']]
+    );
+    const layout = makeLayout(['Email', 'Name']);
+    const result = runConvert(raw, layout);
+    expect(result.kind).toBe('success');
+    if (result.kind === 'success') {
+      expect(result.sheet.headers).toEqual(['Email', 'Name']);
+      expect(result.sheet.rows[0]?.cells.map((c) => c.value)).toEqual(['a@b.com', 'Alice']);
     }
   });
 });

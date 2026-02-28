@@ -6,4 +6,5 @@ export interface ConvertMismatchData {
   readonly mismatches: readonly ColumnMismatch[];
   readonly columnOrder: readonly string[];
   readonly headerToFieldMap: Readonly<Record<string, string>>;
+  readonly layoutError?: boolean;
 }

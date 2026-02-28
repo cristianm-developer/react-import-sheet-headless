@@ -38,7 +38,11 @@ flowchart LR
 ~10 lines to see the value: wrap with the provider, pick a file, read result and errors.
 
 ```tsx
-import { ImporterProvider, useImporter, useSheetView } from '@cristianm/react-import-sheet-headless';
+import {
+  ImporterProvider,
+  useImporter,
+  useSheetView,
+} from '@cristianm/react-import-sheet-headless';
 
 const myLayout = { name: 'my-sheet', version: 1, fields: {} };
 
@@ -67,14 +71,16 @@ function ImporterUI() {
   const { rows } = getPaginatedResult(1, 10);
   return (
     <div>
-      <p>Rows: {sheet.rows.length} | Errors: {sheet.errors.length}</p>
+      <p>
+        Rows: {sheet.rows.length} | Errors: {sheet.errors.length}
+      </p>
       {/* Your table component here, e.g. rows.map(...) */}
     </div>
   );
 }
 ```
 
-For layout, custom validators, and step-by-step usage, see [How to / Usage](docs/how-to.md).
+For layout, custom validators, and step-by-step usage, see [How to / Usage](docs/how-to.md). For a documented example (layout, fields, sanitizers, validators, transforms) with comments, see [examples/ImportExample.md](examples/ImportExample.md).
 
 ### Virtualization (e.g. react-window)
 
@@ -93,11 +99,7 @@ function VirtualizedTable() {
     const offset = index % pageSize;
     const chunk = getRows(page, pageSize);
     const row = chunk[offset];
-    return (
-      <div style={style}>
-        {row ? `Row ${row.index}: ${JSON.stringify(row.cells)}` : null}
-      </div>
-    );
+    return <div style={style}>{row ? `Row ${row.index}: ${JSON.stringify(row.cells)}` : null}</div>;
   };
 
   return (
@@ -120,11 +122,11 @@ Topic-specific guides: [Parser](docs/how-to-parser.md), [Convert](docs/how-to-co
 
 The sheet layout (`SheetLayout`) defines validators, sanitizers, and transformers by level (cell, row, sheet). Options and parameters are documented in:
 
-| Type            | Documentation |
-|-----------------|---------------|
-| Validators      | [Validators reference](docs/validators.md) |
-| Sanitizers      | [Sanitizers reference](docs/sanitizers.md) |
-| Transformers    | [Transformers reference](docs/transformers.md) |
+| Type         | Documentation                                  |
+| ------------ | ---------------------------------------------- |
+| Validators   | [Validators reference](docs/validators.md)     |
+| Sanitizers   | [Sanitizers reference](docs/sanitizers.md)     |
+| Transformers | [Transformers reference](docs/transformers.md) |
 
 **By level:**
 

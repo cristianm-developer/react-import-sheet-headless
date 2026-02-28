@@ -13,7 +13,12 @@
 3. **Engine:** `'xlsx' | 'csv' | 'auto'`. Omit or use `'auto'` for automatic format detection from file extension/MIME.
 
 ```tsx
-import { ImporterProvider, useImporter, useImporterStatus, useSheetData } from 'react-import-sheet-headless';
+import {
+  ImporterProvider,
+  useImporter,
+  useImporterStatus,
+  useSheetData,
+} from 'react-import-sheet-headless';
 
 function App() {
   return (
@@ -28,20 +33,20 @@ function App() {
 
 1. User selects a file → call **`processFile(file)`** (from **`useImporter()`**). Parser runs (Worker); you get raw data and status updates.
 2. Optionally call **`startFullImport()`** (from **`useImportSheet()`**) to parse the full file after a preview.
-3. Call **`convert()`** (from **`useConvert()`**) to align file headers to your **SheetLayout**. You get either **`convertedSheet`** or **`convertResult`** (mapping UI: reorder/rename columns, then **`applyMapping()`**).
+3. Call **`convert(options?)`** (from **`useConvert()`**) to align file headers to your **SheetLayout**. You get either **`convertedSheet`** or **`convertResult`** (mapping UI: reorder/rename columns, then **`applyMapping()`**). **ConvertOptions** may include **`fuzzyHeaders`** (boolean, default **false**) to match similar headers (e.g. "Nombre" → "Name") and **`fuzzyThreshold`** (0–1, default 0.8 when fuzzy is on).
 4. After Convert, the library runs **Sanitizer → Validator → Transform** in order (all in Workers). No extra calls needed; progress and completion are reflected in **`status`** and **`useSheetData()`**.
 5. Consume the result with **`useSheetData()`** (sheet + errors), **`useSheetEditor()`** (editCell, pageData), or **`useSheetView()`** (pagination, filter, export, persist).
 
 ### 1.3 Hooks you will use
 
-| Hook | Use for |
-|------|--------|
-| **`useImporter({ layout?, engine? })`** | **`processFile(file)`**, **`abort()`**, **`metrics`** (PipelineMetrics \| null), **`registerValidator`** / **`registerSanitizer`** / **`registerTransform`**. |
-| **`useImportSheet()`** | **`startFullImport()`** after preview. |
-| **`useConvert()`** | **`convert()`**, **`convertedSheet`**, **`convertResult`** (column mapping). |
-| **`useImporterStatus()`** | **`status`**, subscribe to progress (EventTarget: `importer-progress`, `importer-aborted`). |
-| **`useSheetData()`** | **`sheet`**, **`errors`** (for table rendering). |
-| **`useSheetEditor({ page?, pageSize?, debounceMs? })`** | **`sheet`**, **`editCell({ rowIndex, cellKey, value })`**, **`pageData`**, **`totalPages`**. |
+| Hook                                                         | Use for                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`useImporter({ layout?, engine? })`**                      | **`processFile(file)`**, **`abort()`**, **`metrics`** (PipelineMetrics \| null), **`registerValidator`** / **`registerSanitizer`** / **`registerTransform`**.                                                                                                                                                       |
+| **`useImportSheet()`**                                       | **`startFullImport()`** after preview.                                                                                                                                                                                                                                                                              |
+| **`useConvert()`**                                           | **`convert()`**, **`convertedSheet`**, **`convertResult`** (column mapping).                                                                                                                                                                                                                                        |
+| **`useImporterStatus()`**                                    | **`status`**, subscribe to progress (EventTarget: `importer-progress`, `importer-aborted`).                                                                                                                                                                                                                         |
+| **`useSheetData()`**                                         | **`sheet`**, **`errors`** (for table rendering).                                                                                                                                                                                                                                                                    |
+| **`useSheetEditor({ page?, pageSize?, debounceMs? })`**      | **`sheet`**, **`editCell({ rowIndex, cellKey, value })`**, **`pageData`**, **`totalPages`**.                                                                                                                                                                                                                        |
 | **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Pagination, **filterMode** (all \| errors-only), **totalRows** / **getRows(page, limit)** (page 1-based; virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **hasRecoverableSession** / **recoverSession** / **clearPersistedState** (when Provider has **persist={true}**). |
 
 ---
@@ -62,7 +67,7 @@ Controllers are **validators**, **sanitizers**, and **transforms**. They run in 
 - **Cell validator:** `(value: unknown, row, params?) => readonly SheetError[] | null`. **Row** is the current row (read-only). Return **`null`** when valid.
 - **Row validator:** receives row (and optionally full sheet context depending on implementation). Same return: **SheetError[] | null**.
 - **Table validator:** runs once with full sheet; may be **async** (e.g. backend check). On failure return **SheetError[]**; on network/backend failure the library uses **`EXTERNAL_VALIDATION_FAILED`**.
-- **Error shape:** **`{ code: string; params?: Record<string, unknown>; level?: 'error'|'warning'|'fatal'|'info'; message?: string }`**. The UI translates by **code** and **params** (I18n); **message** is optional fallback.
+- **Error shape:** **`{ code: string; params?: Record<string, unknown>; level?: 'error'|'warning'|'fatal'|'info'; message?: string; rowIndex?: number; cellKey?: string }`**. The UI translates by **code** and **params** (I18n); **message** is optional fallback. **rowIndex** and **cellKey** are optional and indicate where the error is: sheet-level errors can set them to point to a row/cell; row-level errors can set **cellKey** so the error is applied to that cell.
 
 Example (cell, required):
 
@@ -87,7 +92,11 @@ function myRequired(value: unknown, _row: unknown, _params?: Record<string, unkn
 Example (cell, trim):
 
 ```ts
-function myTrim(cell: { key: string; value: unknown }, _row: unknown, _params?: Record<string, unknown>) {
+function myTrim(
+  cell: { key: string; value: unknown },
+  _row: unknown,
+  _params?: Record<string, unknown>
+) {
   const v = cell.value;
   const s = v == null ? '' : typeof v === 'string' ? v : String(v);
   return { key: cell.key, value: s.trim() };
@@ -151,14 +160,21 @@ function toUpper(value: unknown, _cell: unknown, _row: unknown, _params?: Record
 ### 4.1 SheetLayout
 
 - **`name`**, **`version`** (string or number), **`fields`** (Record of **SheetLayoutField**).
-- **Per field:** **`name`**, **`validators?`**, **`sanitizers?`**, **`transformations?`** (each: string id or **`{ name, params? }`**), **`valueType?`** (`'number'|'string'|'bool'|'date'`), **`inputType?`** (`'input'|'checkbox'`).
+- **Per field:** **`name`**, **`validators?`**, **`sanitizers?`**, **`transformations?`** (each: string id or **`{ name, params? }`**), **`valueType?`** (`'number'|'string'|'bool'|'date'`), **`inputType?`** (`'input'|'checkbox'`), **`required?`** (boolean; default **true** when omitted).
 - **Sheet/row level:** **`sheetValidators`**, **`sheetSanitizers`**, **`rowValidators`**, **`rowSanitizers`**, **`rowTransformations`**, **`sheetTransformations`**.
 
-### 4.2 Pipeline (fixed order)
+### 4.2 Convert: required columns and extra columns
+
+- **Extra document columns** are ignored: only columns that map to a layout field are used; unmapped file columns do not appear in **ConvertedSheet** and are not an error.
+- **Required columns:** Every layout field with **`required !== false`** must be mapped (by name or via **headerToFieldMap**). If any required field has no mapping, conversion returns **convertResult** (kind **`'mismatch'`**) with **`layoutError: true`** and **mismatches** listing missing columns; each **ColumnMismatch** has **`required?: boolean`** so the UI can distinguish required vs optional.
+- **Optional columns:** Layout fields with **`required: false`** may be missing in the file; conversion can still succeed and the converted sheet will have those cells as **null**.
+- **Insufficient columns:** If the document has fewer columns than required layout fields (e.g. 3 file columns and 5 required layout fields), it is a **layout error** (**layoutError: true**); the user must provide a file with enough columns or adjust the layout.
+
+### 4.3 Pipeline (fixed order)
 
 **Parser → Convert → Sanitizer → Validator → Transform.** Then optional Edit and View. Do not reorder or skip steps.
 
-### 4.3 Metrics (telemetry)
+### 4.4 Metrics (telemetry)
 
 After a full pipeline run (parse → … → transform), **`useImporter().metrics`** is set to **`PipelineMetrics`** (or **`null`** until the first successful run). It includes **`timings`** (parse, sanitize, validate, transform in ms), **`totalMs`**, **`isSlow`**, **`percentages`**, **`efficiency`** (ms/row), **`rowCount`**, and formatted strings (**`parseTime`**, **`totalTime`**, etc.).
 

@@ -34,8 +34,29 @@ describe('runValidation', () => {
     expect(result).toHaveProperty('errors');
     expect(Array.isArray(result.errors)).toBe(true);
     expect(result.errors.some((e) => 'cellKey' in e && e.cellKey === 'a' && e.rowIndex === 0)).toBe(
-      true,
+      true
     );
+  });
+
+  it('should emit cell delta when row validator returns error with cellKey', async () => {
+    const layoutWithRowValidator = {
+      ...layout,
+      rowValidators: ['rowCheck'],
+    };
+    const getters = {
+      getCellValidator: () => undefined,
+      getRowValidator: (name: string) =>
+        name === 'rowCheck'
+          ? () => [{ code: 'ROW_ERR', level: 'error' as const, cellKey: 'a' }]
+          : undefined,
+      getTableValidator: () => undefined,
+    };
+    const result = await runValidation(sanitizedSheet, layoutWithRowValidator, getters);
+    const cellItem = result.errors.find(
+      (e) => 'cellKey' in e && e.cellKey === 'a' && e.rowIndex === 0
+    );
+    expect(cellItem).toBeDefined();
+    expect('error' in cellItem! && cellItem.error.code).toBe('ROW_ERR');
   });
 
   it('should call onProgress when provided', async () => {

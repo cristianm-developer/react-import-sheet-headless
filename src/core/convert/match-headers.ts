@@ -1,5 +1,6 @@
 import type { RawSheet } from '../../types/raw-sheet.js';
 import type { SheetLayout } from '../../types/sheet-layout.js';
+import { mapHeaders } from '../parser/utils/fuzzy-match.js';
 import type { ColumnMismatch } from './types/column-mismatch.js';
 import type { ConvertOptions } from './types/convert-options.js';
 
@@ -17,7 +18,7 @@ export function matchHeadersToLayout(
   rawSheet: RawSheet,
   sheetLayout: SheetLayout,
   headerToFieldMap: Readonly<Record<string, string>> = {},
-  options: ConvertOptions = {},
+  options: ConvertOptions = {}
 ): MatchHeadersResult {
   const caseSensitive = options.caseSensitive ?? false;
   const normalizer = options.normalizer ?? ((h: string) => defaultNormalize(h, caseSensitive));
@@ -50,14 +51,30 @@ export function matchHeadersToLayout(
     }
   }
 
+  if (options.fuzzyHeaders === true) {
+    const unmatchedFields = layoutFieldNames.filter((f) => fieldToHeader[f] == null);
+    const availableHeaders = fileHeaders.filter((h) => !usedFileHeaders.has(h));
+    const threshold = options.fuzzyThreshold ?? 0.8;
+    const fuzzyResults = mapHeaders(availableHeaders, unmatchedFields, { threshold });
+    for (const { key, matchedHeader } of fuzzyResults) {
+      if (matchedHeader != null && !usedFileHeaders.has(matchedHeader)) {
+        fieldToHeader[key] = matchedHeader;
+        usedFileHeaders.add(matchedHeader);
+      }
+    }
+  }
+
   const mismatches: ColumnMismatch[] = [];
   for (const fieldName of layoutFieldNames) {
     const found = fieldToHeader[fieldName];
     if (found == null) {
+      const field = sheetLayout.fields[fieldName];
+      const required = field?.required !== false;
       mismatches.push({
         expected: fieldName,
         found: null,
         message: `Column '${fieldName}' not found in file`,
+        required,
       });
     }
   }

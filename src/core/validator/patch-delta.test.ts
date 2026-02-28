@@ -5,14 +5,17 @@ const initialSheet = {
   name: 's',
   filesize: 0,
   documentHash: 'h',
-  headers: ['a'],
+  headers: ['a', 'b'],
   sheetLayout: { name: 'l', version: '1' },
-  errors: [] as readonly { code: string; level?: string }[],
+  errors: [] as readonly { code: string; level?: string; rowIndex?: number; cellKey?: string }[],
   rows: [
     {
       index: 0,
       errors: [] as readonly { code: string }[],
-      cells: [{ key: 'a', value: 1, errors: [] as readonly { code: string }[] }],
+      cells: [
+        { key: 'a', value: 1, errors: [] as readonly { code: string }[] },
+        { key: 'b', value: 2, errors: [] as readonly { code: string }[] },
+      ],
     },
   ],
 };
@@ -20,9 +23,7 @@ const initialSheet = {
 describe('applyValidatorDelta', () => {
   it('should apply cell-level errors to the correct cell', () => {
     const delta = {
-      errors: [
-        { rowIndex: 0, cellKey: 'a', error: { code: 'REQUIRED', level: 'error' } },
-      ],
+      errors: [{ rowIndex: 0, cellKey: 'a', error: { code: 'REQUIRED', level: 'error' } }],
     };
     const result = applyValidatorDelta(initialSheet, delta);
     expect(result.rows[0]!.cells[0]!.errors).toHaveLength(1);
@@ -45,6 +46,40 @@ describe('applyValidatorDelta', () => {
     const result = applyValidatorDelta(initialSheet, delta);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]!.code).toBe('EXTERNAL_VALIDATION_FAILED');
+  });
+
+  it('should apply row-level error with cellKey to the specified cell', () => {
+    const delta = {
+      errors: [
+        {
+          rowIndex: 0,
+          cellKey: 'b',
+          error: { code: 'ROW_CELL_ERR', level: 'error' as const },
+        },
+      ],
+    };
+    const result = applyValidatorDelta(initialSheet, delta);
+    expect(result.rows[0]!.cells[1]!.errors).toHaveLength(1);
+    expect(result.rows[0]!.cells[1]!.errors[0]!.code).toBe('ROW_CELL_ERR');
+  });
+
+  it('should preserve optional rowIndex and cellKey on sheet-level errors', () => {
+    const delta = {
+      errors: [
+        {
+          error: {
+            code: 'SHEET_LOCATION',
+            level: 'error' as const,
+            rowIndex: 0,
+            cellKey: 'a',
+          },
+        },
+      ],
+    };
+    const result = applyValidatorDelta(initialSheet, delta);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.rowIndex).toBe(0);
+    expect(result.errors[0]!.cellKey).toBe('a');
   });
 
   it('should not mutate the input sheet', () => {

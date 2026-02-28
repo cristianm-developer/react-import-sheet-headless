@@ -26,8 +26,10 @@ Validators must **not** return static message strings. They return **SheetError*
 - **`params`** — optional data for the UI (e.g. `{ value, min, actual }`).
 - **`level`** — `'error' | 'warning' | 'fatal' | 'info'`.
 - **`message`** — optional fallback for debugging; the UI should translate by **code**.
+- **`rowIndex`** — optional; for **sheet-level** errors, indicates which row the error refers to (validation runs at sheet level but the error can be scoped to a row).
+- **`cellKey`** — optional; for **sheet-level** errors, indicates which cell (together with `rowIndex`); for **row-level** errors, indicates which cell in that row — the error is then applied to that cell instead of the row.
 
-The consumer translates `code` and `params` into localized text.
+The consumer translates `code` and `params` into localized text. Use `rowIndex` and `cellKey` when present to highlight or show the error next to the specific row/cell.
 
 ## Sync vs async
 

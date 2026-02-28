@@ -52,9 +52,7 @@ describe('useSheetView', () => {
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)),
-    );
+    render(createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)));
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('totalRows')).toHaveTextContent('3');
     expect(screen.getByTestId('page')).toHaveTextContent('1');
@@ -87,9 +85,7 @@ describe('useSheetView', () => {
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)),
-    );
+    render(createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)));
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('totalRows')).toHaveTextContent('1');
     expect(screen.getByTestId('rowsWithErrors')).toHaveTextContent('1');
@@ -117,9 +113,7 @@ describe('useSheetView', () => {
         </div>
       );
     }
-    render(
-      createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)),
-    );
+    render(createElement(ImporterProvider, { layout }, createElement(SetResultThenShow)));
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('sliceLen')).toHaveTextContent('2');
     expect(screen.getByTestId('firstIndex')).toHaveTextContent('0');
@@ -128,11 +122,7 @@ describe('useSheetView', () => {
   it('should expose hasRecoverableSession and no-op recover/clear when persist is false', () => {
     function Show() {
       const view = useSheetView();
-      return (
-        <span data-testid="recoverable">
-          {view.hasRecoverableSession ? 'y' : 'n'}
-        </span>
-      );
+      return <span data-testid="recoverable">{view.hasRecoverableSession ? 'y' : 'n'}</span>;
     }
     render(createElement(ImporterProvider, null, createElement(Show)));
     expect(screen.getByTestId('recoverable')).toHaveTextContent('n');
@@ -149,8 +139,12 @@ describe('useSheetView', () => {
       const csv = view.sheet && ctx.layout ? view.exportToCSV({ includeHeaders: true }) : '';
       return (
         <div>
-          <button type="button" onClick={() => ctx.setResult(sheet)}>setResult</button>
-          <span data-testid="csv">{csv ? (csv.charCodeAt(0) === 0xfeff ? 'withBOM' : 'noBOM') : 'empty'}</span>
+          <button type="button" onClick={() => ctx.setResult(sheet)}>
+            setResult
+          </button>
+          <span data-testid="csv">
+            {csv ? (csv.charCodeAt(0) === 0xfeff ? 'withBOM' : 'noBOM') : 'empty'}
+          </span>
         </div>
       );
     }
@@ -170,14 +164,82 @@ describe('useSheetView', () => {
       const json = view.sheet ? view.exportToJSON() : '';
       return (
         <div>
-          <button type="button" onClick={() => ctx.setResult(sheet)}>setResult</button>
-          <span data-testid="json">{json ? String((JSON.parse(json) as unknown[]).length) : 'empty'}</span>
+          <button type="button" onClick={() => ctx.setResult(sheet)}>
+            setResult
+          </button>
+          <span data-testid="json">
+            {json ? String((JSON.parse(json) as unknown[]).length) : 'empty'}
+          </span>
         </div>
       );
     }
     render(createElement(ImporterProvider, { layout }, createElement(SetResultThenExport)));
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('json')).toHaveTextContent('1');
+  });
+
+  it('should call downloadCSV and create blob, object URL and trigger download', async () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
+    const createSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    const rows: ValidatedRow[] = [
+      { index: 0, errors: [], cells: [{ key: 'a', value: 'x', errors: [] }] },
+    ];
+    const sheet = createMockSheet(rows);
+    function SetResultThenDownload() {
+      const ctx = useImporterContext();
+      const view = useSheetView();
+      return (
+        <div>
+          <button type="button" onClick={() => ctx.setResult(sheet)}>
+            setResult
+          </button>
+          <button type="button" onClick={() => view.downloadCSV({ filename: 'out' })}>
+            downloadCSV
+          </button>
+        </div>
+      );
+    }
+    render(createElement(ImporterProvider, { layout }, createElement(SetResultThenDownload)));
+    fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
+    fireEvent.click(screen.getByRole('button', { name: 'downloadCSV' }));
+    await vi.waitFor(() => {
+      expect(createSpy).toHaveBeenCalled();
+      expect(revokeSpy).toHaveBeenCalledWith('blob:mock');
+    });
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+  });
+
+  it('should call downloadJSON and create blob, object URL and trigger download', async () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
+    const createSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:json');
+    const rows: ValidatedRow[] = [
+      { index: 0, errors: [], cells: [{ key: 'a', value: 1, errors: [] }] },
+    ];
+    const sheet = createMockSheet(rows);
+    function SetResultThenDownload() {
+      const ctx = useImporterContext();
+      const view = useSheetView();
+      return (
+        <div>
+          <button type="button" onClick={() => ctx.setResult(sheet)}>
+            setResult
+          </button>
+          <button type="button" onClick={() => view.downloadJSON({ filename: 'data' })}>
+            downloadJSON
+          </button>
+        </div>
+      );
+    }
+    render(createElement(ImporterProvider, { layout }, createElement(SetResultThenDownload)));
+    fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
+    fireEvent.click(screen.getByRole('button', { name: 'downloadJSON' }));
+    await vi.waitFor(() => {
+      expect(createSpy).toHaveBeenCalled();
+      expect(revokeSpy).toHaveBeenCalledWith('blob:json');
+    });
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
   });
 
   it('should call setPage and reflect in getPaginatedResult', () => {
@@ -193,8 +255,12 @@ describe('useSheetView', () => {
       const pr = view.sheet ? view.getPaginatedResult(2, 1) : null;
       return (
         <div>
-          <button type="button" onClick={() => ctx.setResult(sheet)}>setResult</button>
-          <button type="button" onClick={() => view.setPage(2)}>setPage2</button>
+          <button type="button" onClick={() => ctx.setResult(sheet)}>
+            setResult
+          </button>
+          <button type="button" onClick={() => view.setPage(2)}>
+            setPage2
+          </button>
           <span data-testid="pageFromResult">{pr?.page ?? '-'}</span>
           <span data-testid="rowsFromResult">{pr?.rows.length ?? 0}</span>
         </div>

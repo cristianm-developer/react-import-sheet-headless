@@ -30,6 +30,13 @@ export function useImporterActions(
   | 'layout'
   | 'engine'
   | 'progressEventTarget'
+  | 'onSubmit'
+  | 'submitKeyMap'
+  | 'persist'
+  | 'persistKey'
+  | 'hasRecoverableSession'
+  | 'recoverSession'
+  | 'clearPersistedState'
 > {
   const {
     setState,

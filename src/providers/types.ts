@@ -79,7 +79,7 @@ export interface ImporterProviderProps {
   engine?: ParserEngine | null;
   persist?: boolean;
   persistKey?: string;
-  onSubmit?: (rows: Record<string, unknown>[]) => void | null;
+  onSubmit?: ((rows: Record<string, unknown>[]) => void) | null;
   submitKeyMap?: Readonly<Record<string, string>> | null;
 }
 

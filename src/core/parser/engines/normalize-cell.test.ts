@@ -14,14 +14,14 @@ describe('toRawSheetCellValue', () => {
     expect(toRawSheetCellValue(true)).toBe(true);
   });
 
-  it('should return Date instance as-is', () => {
+  it('should convert Date to ISO string (Comlink-safe across worker boundary)', () => {
     const d = new Date('2025-01-01');
-    expect(toRawSheetCellValue(d)).toBe(d);
+    expect(toRawSheetCellValue(d)).toBe(d.toISOString());
   });
 
-  it('should treat object with getTime as Date', () => {
+  it('should treat object with getTime as date and convert to ISO string', () => {
     const dateLike = { getTime: () => 0 };
-    expect(toRawSheetCellValue(dateLike)).toBe(dateLike);
+    expect(toRawSheetCellValue(dateLike)).toBe(new Date(0).toISOString());
   });
 
   it('should coerce other objects to string', () => {

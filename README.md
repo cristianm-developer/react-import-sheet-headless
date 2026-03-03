@@ -1,4 +1,4 @@
-# @cristianm/react-import-sheet-headless
+# @cristianmpx/react-import-sheet-headless
 
 Headless **React** library for **importing** and validating **Excel**/CSV sheet data. No built-in table UI—you bring your own components; the library provides the logic, **Web Worker** speed, and bulk validation.
 
@@ -7,7 +7,7 @@ Headless **React** library for **importing** and validating **Excel**/CSV sheet 
 ## Installation
 
 ```bash
-npm install @cristianm/react-import-sheet-headless
+npm install @cristianmpx/react-import-sheet-headless
 ```
 
 **Peer dependencies:** React 18+ (`react` and `react-dom`).

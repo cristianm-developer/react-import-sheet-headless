@@ -1,0 +1,55 @@
+# Source files (only dist/ should be published)
+src/
+examples/
+
+# Tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+vitest.config.ts
+vitest.setup.ts
+
+# Build config
+tsconfig.json
+tsup.config.ts
+eslint.config.ts
+
+# Git
+.git/
+.gitignore
+.husky/
+
+# CI/CD
+.github/
+
+# Documentation (internal)
+.cursor/
+docs/
+CONTRIBUTORS.md
+
+# Development files
+*.log
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+
+# Misc
+.DS_Store
+*.tsbuildinfo
+.eslintcache
+.prettierignore
+.prettierrc
+.commitlintrc.json
+
+# Linter and formatter config
+.lintstagedrc
+lint-staged.config.js

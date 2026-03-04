@@ -159,4 +159,77 @@ describe('useSheetData', () => {
     fireEvent.click(screen.getByRole('button', { name: 'setResult' }));
     expect(screen.getByTestId('json')).toHaveTextContent('[{"nombre":"Ana","apellido":"López"}]');
   });
+
+  it('should return global errors when status is error and result is null', () => {
+    function SetGlobalErrorThenShow() {
+      const ctx = useImporterContext();
+      const { sheet, errors } = useSheetData();
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() =>
+              ctx.setGlobalErrors([
+                { code: 'PARSER_FAILED', level: 'fatal', message: 'Failed to parse file' },
+              ])
+            }
+          >
+            setGlobalError
+          </button>
+          <span data-testid="sheet">{sheet === null ? 'null' : 'set'}</span>
+          <span data-testid="errorsCount">{errors.length}</span>
+          <span data-testid="firstCode">{errors[0]?.code ?? ''}</span>
+          <span data-testid="firstMessage">{errors[0]?.message ?? ''}</span>
+        </div>
+      );
+    }
+    render(
+      <ImporterProvider>
+        <SetGlobalErrorThenShow />
+      </ImporterProvider>
+    );
+    expect(screen.getByTestId('sheet')).toHaveTextContent('null');
+    expect(screen.getByTestId('errorsCount')).toHaveTextContent('0');
+    fireEvent.click(screen.getByRole('button', { name: 'setGlobalError' }));
+    expect(screen.getByTestId('sheet')).toHaveTextContent('null');
+    expect(screen.getByTestId('errorsCount')).toHaveTextContent('1');
+    expect(screen.getByTestId('firstCode')).toHaveTextContent('PARSER_FAILED');
+    expect(screen.getByTestId('firstMessage')).toHaveTextContent('Failed to parse file');
+  });
+
+  it('should return both global errors and sheet errors when both are present', () => {
+    const mockSheet = createMockSheet([{ code: 'INVALID_EMAIL', params: { value: 'x' } }]);
+    function SetBothErrorsThenShow() {
+      const ctx = useImporterContext();
+      const { errors } = useSheetData();
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              ctx.setGlobalErrors([
+                { code: 'PARSER_WARNING', level: 'warning', message: 'Parser warning' },
+              ]);
+              ctx.setResult(mockSheet);
+            }}
+          >
+            setBoth
+          </button>
+          <span data-testid="errorsCount">{errors.length}</span>
+          <span data-testid="firstCode">{errors[0]?.code ?? ''}</span>
+          <span data-testid="secondCode">{errors[1]?.code ?? ''}</span>
+        </div>
+      );
+    }
+    render(
+      <ImporterProvider>
+        <SetBothErrorsThenShow />
+      </ImporterProvider>
+    );
+    expect(screen.getByTestId('errorsCount')).toHaveTextContent('0');
+    fireEvent.click(screen.getByRole('button', { name: 'setBoth' }));
+    expect(screen.getByTestId('errorsCount')).toHaveTextContent('2');
+    expect(screen.getByTestId('firstCode')).toHaveTextContent('PARSER_WARNING');
+    expect(screen.getByTestId('secondCode')).toHaveTextContent('INVALID_EMAIL');
+  });
 });

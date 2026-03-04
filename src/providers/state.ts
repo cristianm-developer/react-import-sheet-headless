@@ -12,4 +12,5 @@ export const initialState: ImporterState = {
   metrics: null,
   changeLog: [],
   submitDone: false,
+  globalErrors: [],
 };

@@ -56,14 +56,16 @@ describe('useImportSheet', () => {
           <button type="button" onClick={() => processFile(new File(['x'], 'f.csv'))}>
             upload
           </button>
-          <button type="button" onClick={() => startFullImport()}>full</button>
+          <button type="button" onClick={() => startFullImport()}>
+            full
+          </button>
         </div>
       );
     }
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('status')).toHaveTextContent('idle');
     await act(async () => {
@@ -72,7 +74,7 @@ describe('useImportSheet', () => {
     await waitFor(() => {
       expect(mockLoad).toHaveBeenCalledWith(
         expect.any(File),
-        expect.objectContaining({ maxRows: 10, fileName: 'f.csv' }),
+        expect.objectContaining({ maxRows: 10, fileName: 'f.csv' })
       );
     });
     await waitFor(() => {
@@ -93,7 +95,7 @@ describe('useImportSheet', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     await waitFor(() => {
       expect(callbackRef.current).not.toBeNull();
@@ -112,15 +114,19 @@ describe('useImportSheet', () => {
         <div>
           <span data-testid="status">{status}</span>
           <span data-testid="raw">{rawData ? 'set' : 'null'}</span>
-          <button type="button" onClick={() => processFile(new File(['x'], 'f.csv'))}>upload</button>
-          <button type="button" onClick={() => startFullImport()}>full</button>
+          <button type="button" onClick={() => processFile(new File(['x'], 'f.csv'))}>
+            upload
+          </button>
+          <button type="button" onClick={() => startFullImport()}>
+            full
+          </button>
         </div>
       );
     }
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     await act(async () => {
       screen.getByRole('button', { name: 'upload' }).click();
@@ -134,6 +140,71 @@ describe('useImportSheet', () => {
     await waitFor(() => {
       expect(mockParseAll).toHaveBeenCalled();
       expect(screen.getByTestId('raw')).toHaveTextContent('set');
+    });
+  });
+
+  it('should set status to error and populate globalErrors when load fails', async () => {
+    mockLoad.mockRejectedValue(new Error('Parse failed'));
+    function Consumer() {
+      const { processFile } = useImporter();
+      const { status, globalErrors } = useImporterContext();
+      return (
+        <div>
+          <span data-testid="status">{status}</span>
+          <span data-testid="errorsCount">{globalErrors.length}</span>
+          <span data-testid="errorCode">{globalErrors[0]?.code ?? ''}</span>
+          <span data-testid="errorMessage">{globalErrors[0]?.message ?? ''}</span>
+          <button type="button" onClick={() => processFile(new File(['x'], 'f.csv'))}>
+            upload
+          </button>
+        </div>
+      );
+    }
+    render(
+      <ImporterProvider>
+        <Consumer />
+      </ImporterProvider>
+    );
+    expect(screen.getByTestId('status')).toHaveTextContent('idle');
+    await act(async () => {
+      screen.getByRole('button', { name: 'upload' }).click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+      expect(screen.getByTestId('errorsCount')).toHaveTextContent('1');
+      expect(screen.getByTestId('errorCode')).toHaveTextContent('PARSER_FAILED');
+      expect(screen.getByTestId('errorMessage')).toHaveTextContent('Parse failed');
+    });
+  });
+
+  it('should set status to error and populate globalErrors when load returns empty sheets', async () => {
+    mockLoad.mockResolvedValue({ sheets: {} });
+    function Consumer() {
+      const { processFile } = useImporter();
+      const { status, globalErrors } = useImporterContext();
+      return (
+        <div>
+          <span data-testid="status">{status}</span>
+          <span data-testid="errorsCount">{globalErrors.length}</span>
+          <span data-testid="errorCode">{globalErrors[0]?.code ?? ''}</span>
+          <button type="button" onClick={() => processFile(new File(['x'], 'f.csv'))}>
+            upload
+          </button>
+        </div>
+      );
+    }
+    render(
+      <ImporterProvider>
+        <Consumer />
+      </ImporterProvider>
+    );
+    await act(async () => {
+      screen.getByRole('button', { name: 'upload' }).click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+      expect(screen.getByTestId('errorsCount')).toHaveTextContent('1');
+      expect(screen.getByTestId('errorCode')).toHaveTextContent('PARSER_NO_SHEETS');
     });
   });
 });

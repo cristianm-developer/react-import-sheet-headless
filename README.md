@@ -179,6 +179,31 @@ function VirtualizedTable() {
 
 **Persistence:** When using `persist={true}`, call **clearPersistedState()** (from **useSheetView**) after the user has successfully submitted the import to your server, so data is not left in IndexedDB indefinitely. See [View / Persist](docs/how-to-view.md).
 
+## Error Handling
+
+The library exposes errors through `useSheetData().errors`. Errors include both **global errors** (parser failures, worker crashes) and **validation errors** (cell/row/sheet level).
+
+```typescript
+const { errors, sheet } = useSheetData();
+const { status } = useImporterStatus();
+
+if (status === 'error' && !sheet) {
+  // Fatal error: parser failed before creating a sheet
+  const fatalError = errors[0];
+  console.error(`${fatalError.code}: ${fatalError.message}`);
+  // Example: PARSER_FAILED, PARSER_NO_SHEETS
+}
+
+if (errors.length > 0) {
+  // Validation errors or warnings
+  errors.forEach((error) => {
+    console.error(`Row ${error.rowIndex}, Cell ${error.cellKey}: ${error.message}`);
+  });
+}
+```
+
+**Error codes reference:** See [Error Codes](docs/error-codes.md) for a complete list of error codes, their meanings, and how to handle them.
+
 ## How to (usage)
 
 Step-by-step usage and recipes (handling large files, real-time errors, session recovery): **[How to / Usage](docs/how-to.md)**.

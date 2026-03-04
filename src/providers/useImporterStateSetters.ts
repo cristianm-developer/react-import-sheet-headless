@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { ImporterState, ImporterStatus } from '../types/index.js';
 import type { PipelineMetrics } from '../types/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
+import type { SheetError } from '../types/error.js';
 import type { ImporterContextValue, UseImporterStateSettersDeps } from './types.js';
 
 export function useImporterStateSetters(
@@ -20,6 +21,7 @@ export function useImporterStateSetters(
   | 'setConvertResultData'
   | 'setMetrics'
   | 'setSubmitDone'
+  | 'setGlobalErrors'
 > {
   const { setState, setLayoutState, setEngineState } = deps;
 
@@ -118,6 +120,13 @@ export function useImporterStateSetters(
     [setEngineState]
   );
 
+  const setGlobalErrors = useCallback(
+    (errors: readonly SheetError[]) => {
+      setState((prev) => ({ ...prev, globalErrors: errors }));
+    },
+    [setState]
+  );
+
   return {
     setLayout,
     setEngine,
@@ -131,5 +140,6 @@ export function useImporterStateSetters(
     setConvertResultData,
     setMetrics,
     setSubmitDone,
+    setGlobalErrors,
   };
 }

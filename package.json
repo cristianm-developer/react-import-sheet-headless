@@ -1,6 +1,6 @@
 {
   "name": "@cristianmpx/react-import-sheet-headless",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Headless component for React Import Sheet",
   "type": "module",
   "main": "./dist/index.js",

@@ -118,6 +118,7 @@ export function useImporterActions(
         metrics: null,
         changeLog: [],
         submitDone: false,
+        globalErrors: [],
       }));
     },
     [phaseTimingsRef, setState]

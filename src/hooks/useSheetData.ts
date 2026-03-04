@@ -10,9 +10,10 @@ export function useSheetData() {
   const ctx = useImporterContext();
   const sheet = ctx.result;
   const errors = useMemo(() => {
-    if (!sheet) return [];
-    return [...sheet.errors];
-  }, [sheet]);
+    const sheetErrors = sheet ? [...sheet.errors] : [];
+    const globalErrors = [...ctx.globalErrors];
+    return [...globalErrors, ...sheetErrors];
+  }, [sheet, ctx.globalErrors]);
   const toObjects = useCallback(
     <T>(mapRow: (row: ValidatedRow) => T): T[] => {
       if (!sheet) return [];

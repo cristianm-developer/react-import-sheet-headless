@@ -3,6 +3,7 @@ import type { Registry } from '../shared/registry/index.js';
 import type { RegistryLevel } from '../shared/registry/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
 import type { ChangeLogEntry } from '../types/change-log.js';
+import type { SheetError } from '../types/error.js';
 import type {
   ImporterState,
   ImporterStatus,
@@ -23,6 +24,7 @@ export interface ImporterContextValue {
   readonly metrics: ImporterState['metrics'];
   readonly changeLog: ImporterState['changeLog'];
   readonly submitDone: boolean;
+  readonly globalErrors: readonly SheetError[];
   readonly layout: SheetLayout | null;
   readonly engine: ParserEngine | null;
   readonly progressEventTarget: EventTarget;
@@ -45,6 +47,7 @@ export interface ImporterContextValue {
   ) => void;
   setMetrics: (metrics: ImporterState['metrics']) => void;
   setSubmitDone: (done: boolean) => void;
+  setGlobalErrors: (errors: readonly SheetError[]) => void;
   setPhaseTiming: (phase: PipelinePhase, ms: number) => void;
   finalizeMetrics: (rowCount: number) => void;
   processFile: (file: File) => void;

@@ -4,6 +4,7 @@ import type { ChangeLogEntry } from './change-log.js';
 import type { PipelineMetrics } from './metrics.js';
 import type { RawSheet } from './raw-sheet.js';
 import type { Sheet } from './sheet.js';
+import type { SheetError } from './error.js';
 
 export type ImporterStatus =
   | 'idle'
@@ -36,6 +37,7 @@ export interface ImporterState {
   readonly metrics: PipelineMetrics | null;
   readonly changeLog: readonly ChangeLogEntry[];
   readonly submitDone: boolean;
+  readonly globalErrors: readonly SheetError[];
 }
 
 export const IMPORTER_PROGRESS_EVENT = 'importer-progress';

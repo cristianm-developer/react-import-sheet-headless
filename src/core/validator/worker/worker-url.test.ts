@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getValidatorWorkerUrl } from './worker-url.js';
 
 describe('getValidatorWorkerUrl', () => {
-  it('should return a URL that includes validator.worker', () => {
+  it('should return a Blob URL for inlined Worker', () => {
     const url = getValidatorWorkerUrl();
-    expect(url).toContain('validator.worker');
+    expect(url).toMatch(/^blob:/);
   });
 });

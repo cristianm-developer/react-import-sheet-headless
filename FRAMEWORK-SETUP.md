@@ -1,5 +1,9 @@
 # 🚀 Configuración por Framework
 
+> **Nota:** A partir de la versión 1.0.5, la mayoría de esta configuración **ya no es necesaria**. Los Workers ahora se cargan como Blob URLs, por lo que la librería funciona sin configuración adicional en todos los bundlers. Esta guía se mantiene como referencia y para usuarios de versiones anteriores.
+
+---
+
 Esta guía explica cómo configurar tu proyecto React/Next.js/etc. para que los Web Workers de `@cristianmpx/react-import-sheet-headless` funcionen correctamente.
 
 ---

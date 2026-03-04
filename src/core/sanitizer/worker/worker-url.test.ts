@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getSanitizerWorkerUrl } from './worker-url.js';
 
 describe('getSanitizerWorkerUrl', () => {
-  it('should return a URL that includes sanitizer.worker', () => {
+  it('should return a Blob URL for inlined Worker', () => {
     const url = getSanitizerWorkerUrl();
-    expect(url).toContain('sanitizer.worker');
+    expect(url).toMatch(/^blob:/);
   });
 });

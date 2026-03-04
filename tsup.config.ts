@@ -13,5 +13,7 @@ export default defineConfig({
     dts: true,
     minify: true,
     external: ['react', 'react-dom'],
-    sourcemap: true
+    sourcemap: true,
+    splitting: false,
+    noExternal: ['papaparse', 'xlsx', 'js-sha256', 'comlink']
 })

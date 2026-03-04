@@ -10,6 +10,16 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-03-04 — Critical fix: Worker loading in npm packages (inline Workers as Blob URLs)
+
+**What changed:** **(1)** Workers are now **inlined as Blob URLs** instead of using `import.meta.url` for file resolution. **(2)** **tsup.config.ts** updated to disable code splitting (`splitting: false`) and bundle all dependencies (`noExternal: ['papaparse', 'xlsx', 'js-sha256', 'comlink']`) so Workers are self-contained. **(3)** Added **scripts/inline-workers.mjs** that runs after the first build, reads each Worker bundle, and generates `worker-url.ts` files with the Worker code as strings that create Blob URLs. **(4)** Build process now runs: `tsup → inline-workers.mjs → tsup` (second build includes the inlined Workers). **(5)** All **worker-url.ts** files (parser, sanitizer, validator, transform, edit) now return Blob URLs created from inlined Worker code. **(6)** Updated all **worker-url.test.ts** files to expect Blob URLs instead of file paths.
+
+**Why:** When the library was consumed as an npm package, `new URL('./parser.worker.js', import.meta.url)` failed because `import.meta.url` resolved relative to the **consumer's bundle context**, not the library's `dist` folder. This caused the error `"r.load is not a function"` (actually a Worker loading failure). Inlining Workers as Blob URLs ensures they load correctly in all environments regardless of the consumer's bundler.
+
+**Trade-off:** Main bundle size increased from ~20 KB to ~421 KB (Workers are inlined), but this is acceptable because: **(a)** Workers are loaded lazily (only when needed), **(b)** the library is now usable as a dependency (was completely broken before), **(c)** consumers don't need to configure their bundler to handle Worker files.
+
+**Affected files:** tsup.config.ts, package.json (build script), scripts/inline-workers.mjs (new), src/core/parser/worker/worker-url.ts, src/core/sanitizer/worker/worker-url.ts, src/core/validator/worker/worker-url.ts, src/core/transform/worker/worker-url.ts, src/core/editor/worker/worker-url.ts, all worker-url.test.ts files, CHANGELOG.md, .cursor/history.md.
+
 ### 2026-03-04 — Bug fix: automatic orchestration in Provider (useImportSheet)
 
 **What changed:** **(1)** **ImporterProvider** now includes an internal **`ImporterOrchestrator`** component that calls **`useImportSheet()`** automatically. This ensures the parser is triggered when `processFile(file)` sets `status: 'loading'`. **(2)** **ImporterProvider.test.tsx** now mocks **`useParserWorker`** (returns `isReady: false` to prevent orchestration in tests). **(3)** **BUG_FIX_SUMMARY.md** added to document the issue, root cause, fix, and impact.

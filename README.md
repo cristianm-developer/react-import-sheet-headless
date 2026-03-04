@@ -14,70 +14,15 @@ npm install @cristianmpx/react-import-sheet-headless
 
 ### ⚙️ Framework Setup
 
-**Important:** Web Workers require specific configuration depending on your framework. See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for detailed instructions.
+**Good news:** As of version 1.0.5, **no special configuration is required!** Workers are now inlined as Blob URLs, so the library works out-of-the-box with all bundlers (Vite, Webpack, Rollup, etc.).
 
-**Quick config:**
-
-<details>
-<summary><strong>Vite + React</strong></summary>
-
-```typescript
-// vite.config.ts
-export default defineConfig({
-  optimizeDeps: {
-    exclude: ['@cristianmpx/react-import-sheet-headless'],
-  },
-  worker: {
-    format: 'es',
-  },
-});
-```
-
-</details>
-
-<details>
-<summary><strong>Next.js</strong></summary>
-
-```javascript
-// next.config.js
-module.exports = {
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.module.rules.push({
-        test: /\.worker\.js$/,
-        use: { loader: 'worker-loader' },
-      });
-    }
-    return config;
-  },
-};
-```
-
-**Important:** Use `dynamic` import with `ssr: false`:
+**For Next.js:** Use `dynamic` import with `ssr: false` to avoid server-side rendering issues:
 
 ```typescript
 const Importer = dynamic(() => import('./Importer'), { ssr: false });
 ```
 
-</details>
-
-<details>
-<summary><strong>Storybook</strong></summary>
-
-```typescript
-// .storybook/main.ts
-async viteFinal(config) {
-  config.optimizeDeps = {
-    exclude: ['@cristianmpx/react-import-sheet-headless'],
-  };
-  config.worker = { format: 'es' };
-  return config;
-}
-```
-
-</details>
-
-See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for CRA, Remix, and Webpack configurations.
+**Previous versions (1.0.4 and earlier):** If you're using an older version, you may need bundler-specific configuration. See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for details, or upgrade to 1.0.5+ for automatic compatibility.
 
 ## Why Headless
 

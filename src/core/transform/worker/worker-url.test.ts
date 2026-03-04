@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { getTransformWorkerUrl } from './worker-url.js';
 
 describe('getTransformWorkerUrl', () => {
-  it('should return a URL that includes transform.worker', () => {
+  it('should return a Blob URL for inlined Worker', () => {
     const url = getTransformWorkerUrl();
-    expect(url).toContain('transform.worker');
+    expect(url).toMatch(/^blob:/);
   });
 
   it('should return a valid URL', () => {

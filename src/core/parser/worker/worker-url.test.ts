@@ -13,11 +13,9 @@ describe('Parser Worker URL', () => {
     expect(url.length).toBeGreaterThan(0);
   });
 
-  it('should return a URL that ends with parser.worker.js or .ts', () => {
+  it('should return a Blob URL for inlined Worker', () => {
     const url = getParserWorkerUrl();
-    // In development (Vitest), it points to .ts
-    // In production (built package), it points to .js
-    expect(url).toMatch(/parser\.worker\.(js|ts)$/);
+    expect(url).toMatch(/^blob:/);
   });
 
   it('should return a URL that can be parsed', () => {
@@ -108,9 +106,7 @@ describe('Worker URL in Different Environments', () => {
     console.log(JSON.stringify(diagnostics, null, 2));
 
     expect(diagnostics.fullUrl).toBeDefined();
-    expect(diagnostics.protocol).toBeDefined();
-    // In development: .ts, in production: .js
-    expect(diagnostics.pathname).toMatch(/parser\.worker\.(js|ts)$/);
+    expect(diagnostics.protocol).toBe('blob:');
   });
 });
 

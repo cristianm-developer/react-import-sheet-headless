@@ -29,7 +29,73 @@ function App() {
 }
 ```
 
-### 1.2 Flow (order of operations)
+### 1.2 Framework Configuration (CRITICAL for Web Workers)
+
+**Web Workers require specific bundler configuration.** Without proper setup, workers will fail to load and the import process will hang in "loading" state.
+
+#### Vite + React (most common)
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ['@cristianmpx/react-import-sheet-headless'],
+  },
+  worker: {
+    format: 'es',
+  },
+});
+```
+
+**Why:** Vite pre-bundles dependencies by default, which breaks worker URL resolution. `exclude` prevents pre-bundling; `worker.format: 'es'` uses ES modules (required).
+
+#### Next.js
+
+```javascript
+// next.config.js
+module.exports = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\.worker\.js$/,
+        use: { loader: 'worker-loader' },
+      });
+    }
+    return config;
+  },
+};
+```
+
+**Required dependency:** `npm install --save-dev worker-loader`
+
+**ALWAYS use dynamic import with ssr: false:**
+
+```typescript
+const Importer = dynamic(() => import('./Importer'), { ssr: false });
+```
+
+**Why:** Workers only work in the browser (not SSR). Next.js does SSR by default.
+
+#### Create React App
+
+**No configuration needed** in most cases. If issues occur, use CRACO.
+
+#### Storybook
+
+```typescript
+// .storybook/main.ts
+async viteFinal(config) {
+  config.optimizeDeps = {
+    exclude: ['@cristianmpx/react-import-sheet-headless'],
+  };
+  config.worker = { format: 'es' };
+  return config;
+}
+```
+
+**Full framework setup guide:** See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for detailed configuration for all frameworks (Vite, Next.js, CRA, Remix, Storybook, Webpack).
+
+### 1.3 Flow (order of operations)
 
 1. User selects a file → call **`processFile(file)`** (from **`useImporter()`**). Parser runs (Worker); you get raw data and status updates.
 2. Optionally call **`startFullImport()`** (from **`useImportSheet()`**) to parse the full file after a preview.
@@ -37,7 +103,7 @@ function App() {
 4. After Convert, the library runs **Sanitizer → Validator → Transform** in order (all in Workers). No extra calls needed; progress and completion are reflected in **`status`** and **`useSheetData()`**.
 5. Consume the result with **`useSheetData()`** (sheet + errors), **`useSheetEditor()`** (editCell, pageData), or **`useSheetView()`** (pagination, filter, export, persist).
 
-### 1.3 Hooks you will use
+### 1.4 Hooks you will use
 
 | Hook                                                         | Use for                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -189,10 +255,80 @@ After a full pipeline run (parse → … → transform), **`useImporter().metric
 
 ---
 
-## 6. References (inside this repo)
+## 6. Troubleshooting and Diagnostics
+
+### 6.1 Common Issues
+
+#### Workers stuck in "loading" state
+
+**Symptoms:**
+
+- Status changes from `idle` to `loading` but never progresses
+- No errors in browser console
+- No 404 errors in Network tab
+
+**Causes and solutions:**
+
+1. **Missing framework configuration** → Apply config from section 1.2 above
+2. **Vite pre-bundling** → Add package to `optimizeDeps.exclude`
+3. **Next.js SSR** → Use `dynamic` import with `ssr: false`
+
+#### "Failed to load worker script" error
+
+**Causes:**
+
+- Worker files not accessible (404)
+- Incorrect bundler configuration
+- CORS issues
+
+**Solution:** Verify framework configuration and run diagnostic tools (see below).
+
+### 6.2 Diagnostic Tools
+
+The package includes diagnostic tools to help troubleshoot worker issues:
+
+#### Verify package build (before publishing)
+
+```bash
+npm run verify
+```
+
+Checks that all worker files are present in `dist/`.
+
+#### Diagnose installation (in consuming project)
+
+```bash
+npm run diagnose
+# or
+node node_modules/@cristianmpx/react-import-sheet-headless/scripts/diagnose-installation.js
+```
+
+Verifies package installation and worker file accessibility.
+
+#### Browser diagnostic (interactive HTML test)
+
+```bash
+cp node_modules/@cristianmpx/react-import-sheet-headless/test-worker-diagnostic.html ./public/
+# Open http://localhost:3000/test-worker-diagnostic.html
+```
+
+Interactive browser tests for worker URL resolution, creation, and Comlink communication.
+
+### 6.3 Documentation Resources
+
+- **Framework setup:** [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) - Detailed configuration for all frameworks
+- **Quick start:** [QUICK-START-FRAMEWORKS.md](./QUICK-START-FRAMEWORKS.md) - Complete code examples
+- **Troubleshooting:** [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Common problems and solutions
+- **Testing guide:** [TESTING-GUIDE.md](./TESTING-GUIDE.md) - How to test and diagnose issues
+- **Framework comparison:** [FRAMEWORK-COMPARISON.md](./FRAMEWORK-COMPARISON.md) - Side-by-side comparison
+
+---
+
+## 7. References (inside this repo)
 
 - **Architecture and flow:** `.cursor/docs/Architecture.md`
 - **Per-topic how-to:** `docs/how-to.md`, `docs/how-to-validators.md`, `docs/how-to-sanitizer.md`, `docs/how-to-transformers.md`, `docs/how-to-convert.md`, `docs/how-to-parser.md`, `docs/how-to-edit.md`, `docs/how-to-view.md`
 - **Controller reference tables:** `docs/validators.md`, `docs/sanitizers.md`, `docs/transformers.md`
+- **Framework setup and troubleshooting:** `FRAMEWORK-SETUP.md`, `TROUBLESHOOTING.md`, `QUICK-START-FRAMEWORKS.md`
 
 When you change a **public hook**, a **data type** in the external API, or **pipeline behaviour** in core, update this file so the implementation guide stays accurate for external projects.

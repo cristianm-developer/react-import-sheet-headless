@@ -10,6 +10,14 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-03-04 — Bug fix: automatic orchestration in Provider (useImportSheet)
+
+**What changed:** **(1)** **ImporterProvider** now includes an internal **`ImporterOrchestrator`** component that calls **`useImportSheet()`** automatically. This ensures the parser is triggered when `processFile(file)` sets `status: 'loading'`. **(2)** **ImporterProvider.test.tsx** now mocks **`useParserWorker`** (returns `isReady: false` to prevent orchestration in tests). **(3)** **BUG_FIX_SUMMARY.md** added to document the issue, root cause, fix, and impact.
+
+**Why:** Before this fix, consumers had to manually call `useImportSheet()` in their components for the parser to run; if they only called `useImporter()`, the library would get stuck in "loading" state. Now the orchestration is automatic and transparent.
+
+**Affected files:** src/providers/ImporterProvider.tsx, src/providers/ImporterProvider.test.tsx, BUG_FIX_SUMMARY.md (new), .cursor/history.md.
+
 ### 2026-02-28 — Submit state and post-submit lock (submitDone, canSubmit, canEdit)
 
 **What changed:** **(1)** **ImporterState** and Provider now include **submitDone** (boolean). **(2)** **ImporterProvider** accepts **onSubmit?: (rows: Record<string, unknown>[]) => void** and **submitKeyMap?: Record<string, string>** (sheet column key → output key). **(3)** **useImporter()** exposes **submit()**, **canSubmit** (true only when status is success, no validation errors, and not yet submitted), **submitDone**. **submit()** calls **onSubmit** with either layout-based row objects or **sheetToObjectsWithKeyMap(sheet, submitKeyMap)** when **submitKeyMap** is set; then sets **submitDone** to true. **(4)** **hasValidationErrors(sheet)** added in **core/view/get-view-counts.ts**; submit is allowed only when there are no validation errors. **(5)** **useSheetEditor()** exposes **canEdit** (= !submitDone); when **submitDone** is true, **editCell** and **removeRow** no-op; export/download remain available. **(6)** **processFile** resets **submitDone** to false. **(7)** Tests: hasValidationErrors, useImporter submit/canSubmit, useSheetEditor canEdit and no-op when submitDone.

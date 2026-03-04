@@ -12,8 +12,6 @@ Wrap your import flow with **`ImporterProvider`**. Use **`useImporter({ layout?,
 import {
   ImporterProvider,
   useImporter,
-  useImportSheet,
-  useConvert,
   useImporterStatus,
   useSheetData,
 } from '@cristianm/react-import-sheet-headless';
@@ -31,7 +29,6 @@ function UploadAndImport() {
     layout: myLayoutConfig,
     engine: 'auto',
   });
-  const { startFullImport } = useImportSheet();
   const { status } = useImporterStatus();
   const { sheet, errors } = useSheetData();
 
@@ -45,14 +42,7 @@ function UploadAndImport() {
         onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
       />
       <p>Status: {status}</p>
-      {status === 'success' && (
-        <>
-          <button type="button" onClick={() => startFullImport()}>
-            Import full file
-          </button>
-          {sheet && <pre>{JSON.stringify(sheet.headers)}</pre>}
-        </>
-      )}
+      {status === 'success' && sheet && <pre>{JSON.stringify(sheet.headers)}</pre>}
     </div>
   );
 }
@@ -63,14 +53,14 @@ function UploadAndImport() {
 | Hook                                                         | Role                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`useImporter({ layout?, engine? })`**                      | Entry: `processFile(file)`, `abort()`, register APIs, **`submit()`**, **`canSubmit`**, **`submitDone`**. When Provider has **`onSubmit`**, call **`submit()`** to pass the processed result (layout objects or key-mapped) to your callback; allowed only when there are no validation errors. After submit, editing is disabled; export/download remain available. |
-| **`useImportSheet()`**                                       | After preview: `startFullImport()` to parse the full file.                                                                                                                                                                                                                                                                                                          |
+| **`useImportSheet()`**                                       | Optional: `startFullImport()` to parse the full file after preview. **Note:** Preview (first 10 rows) happens automatically when you call `processFile(file)`; you only need this hook if you want to trigger full file parsing explicitly.                                                                                                                         |
 | **`useConvert()`**                                           | After raw data is set: `convert()` to align headers to layout; returns `convertedSheet` or `convertResult` (reorder/rename/applyMapping).                                                                                                                                                                                                                           |
 | **`useImporterStatus()`**                                    | `status` and progress (subscribe to EventTarget for `importer-progress` / `importer-aborted`).                                                                                                                                                                                                                                                                      |
 | **`useSheetData()`**                                         | Result **`sheet`**, **`errors`**, **`toObjects<T>(mapRow)`** (convert rows to your DTO), **`toObjectsWithKeyMap(keyMap)`** (sheet key → output attr). See [How to: Result](how-to-result.md).                                                                                                                                                                       |
 | **`useSheetEditor({ page?, pageSize?, debounceMs? })`**      | Result `sheet`, **`editCell({ rowIndex, cellKey, value })`**, **`removeRow(rowIndex)`**, **`pageData`**, **`totalPages`**, **`canEdit`** (false after submit). When **submitDone** is true, **canEdit** is false and edit/remove no-op.                                                                                                                             |
 | **`useSheetView({ page?, defaultPageSize?, filterMode? })`** | Paginated view, **filterMode** (all \| errors-only), **totalRows** / **getRows** (virtualization), **exportToCSV** / **exportToJSON** / **downloadCSV** / **downloadJSON**, **persist** (hasRecoverableSession, recoverSession, clearPersistedState). Composes useSheetEditor.                                                                                      |
 
-**Flow:** Call `processFile(file)` → parser runs in a Worker (preview: first 10 rows) → `rawData` and `status` update → call `startFullImport()` to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build sheet with errors) → run **Transform** on that sheet (Worker returns value deltas; main thread applies **`applyTransformDelta`** to get final **result**); progress and result available via hooks and EventTarget.
+**Flow:** Call `processFile(file)` → parser runs automatically in a Worker (preview: first 10 rows) → `rawData` and `status` update → optionally call `startFullImport()` (from `useImportSheet()`) to parse the entire file → call **`convert()`** (from `useConvert()`) to align columns to layout → `convertedSheet` or `convertResult` (mapping UI) → run **Sanitizer** on `convertedSheet` to get **`sanitizedSheet`** → run **Validator** on `sanitizedSheet` (Worker returns error delta; main thread applies delta to build sheet with errors) → run **Transform** on that sheet (Worker returns value deltas; main thread applies **`applyTransformDelta`** to get final **result**); progress and result available via hooks and EventTarget.
 
 ## Submit (after validation)
 

@@ -9,10 +9,10 @@ Illustrative example of **putting it together**: wrap with the Provider, use `us
 1. **Wrap** your import UI with **`ImporterProvider`**.
 2. **Call** **`useImporter({ layout, engine })`** to get `processFile`, `registerValidator`, `registerSanitizer`, `registerTransform`.
 3. **Register** all your controller functions **once** (e.g. in `useEffect`) so the layout ids resolve when the pipeline runs.
-4. **Trigger** the pipeline by calling **`processFile(file)`** when the user selects a file.
+4. **Trigger** the pipeline by calling **`processFile(file)`** when the user selects a file. The parser will run automatically (preview: first 10 rows).
 5. **Read** status with **`useImporterStatus()`** and result/errors with **`useSheetData()`**.
 
-For a full run (parse → convert → sanitize → validate → transform), your app may also need to call `startFullImport()` from `useImportSheet()` and `convert()` from `useConvert()` after file selection — see [how-to.md](../docs/how-to.md).
+**Note:** The preview (first 10 rows) happens automatically when you call `processFile(file)`. You only need `useImportSheet()` and `startFullImport()` if you want to parse the entire file after the user confirms the preview. For column alignment, call `convert()` from `useConvert()` after raw data is available — see [how-to.md](../docs/how-to.md).
 
 ---
 

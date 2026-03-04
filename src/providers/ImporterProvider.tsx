@@ -8,6 +8,12 @@ import type { ImporterContextValue, ImporterProviderProps } from './types.js';
 import { useImporterActions } from './useImporterActions.js';
 import { useImporterStateSetters } from './useImporterStateSetters.js';
 import { usePersistSession } from './usePersistSession.js';
+import { useImportSheet } from '../hooks/useImportSheet.js';
+
+function ImporterOrchestrator() {
+  useImportSheet();
+  return null;
+}
 
 export function ImporterProvider({
   children,
@@ -97,5 +103,10 @@ export function ImporterProvider({
     ]
   );
 
-  return <ImporterContext.Provider value={value}>{children}</ImporterContext.Provider>;
+  return (
+    <ImporterContext.Provider value={value}>
+      <ImporterOrchestrator />
+      {children}
+    </ImporterContext.Provider>
+  );
 }

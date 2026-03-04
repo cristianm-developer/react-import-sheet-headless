@@ -14,12 +14,12 @@ Parser behaviour, supported formats, engine option, preview vs full import, and 
 - **`'auto'`** (default when omitted): detection from file extension and MIME.
 - **`'xlsx'`** or **`'csv'`**: force that engine (e.g. for misnamed or extensionless files).
 
-## Flow: preview then full import
+## Flow: automatic preview then optional full import
 
-1. **`processFile(file)`** — Sets `status` to `'loading'` and runs the parser in a Web Worker. The first run is a **preview** (first 10 rows). Result is stored as `rawData` (first sheet) and `documentHash`; `status` becomes `'success'` or `'error'`.
-2. **`startFullImport()`** — Call after the user confirms the preview. Parses the entire file (Worker already has the blob). Progress is emitted on the importer EventTarget (`importer-progress`). Returns a Promise of **`RawParseResult`**.
+1. **`processFile(file)`** — Sets `status` to `'loading'` and automatically triggers the parser in a Web Worker. The first run is a **preview** (first 10 rows). Result is stored as `rawData` (first sheet) and `documentHash`; `status` becomes `'success'` or `'error'`. **This happens automatically** — you don't need to call any additional hooks.
+2. **`startFullImport()`** (optional) — Call this from `useImportSheet()` if you need to parse the entire file after the user confirms the preview. The Worker already has the blob, so no re-upload is needed. Progress is emitted on the importer EventTarget (`importer-progress`). Returns a Promise of **`RawParseResult`**.
 
-`useImportSheet()` runs inside the Provider and triggers the preview when `processFile(file)` is called; it also exposes `startFullImport()` for the full run.
+**Note:** The preview (step 1) happens automatically when you call `processFile(file)`. You only need `useImportSheet()` if you want to explicitly trigger full file parsing via `startFullImport()`.
 
 ## Types
 

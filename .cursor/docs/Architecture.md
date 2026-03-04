@@ -118,6 +118,8 @@ const { editCell, removeRow, changeLog, changeLogAsText } = useSheetEditor();
 
 All of this is exposed via **context** and these **hooks**; no UI is rendered by the library. **No Zustand** — only React state in the Provider and **EventTarget** for progress.
 
+**Orchestration:** The Provider automatically includes an internal orchestration component that triggers the parser when `processFile(file)` is called. Consumers do not need to call `useImportSheet()` unless they specifically need `startFullImport()` for full file parsing after preview.
+
 ### Context stability
 
 So that consumer optimizations (e.g. `React.memo`, virtualized lists) are not broken:

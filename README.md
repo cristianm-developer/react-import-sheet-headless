@@ -12,6 +12,73 @@ npm install @cristianmpx/react-import-sheet-headless
 
 **Peer dependencies:** React 18+ (`react` and `react-dom`).
 
+### ⚙️ Framework Setup
+
+**Important:** Web Workers require specific configuration depending on your framework. See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for detailed instructions.
+
+**Quick config:**
+
+<details>
+<summary><strong>Vite + React</strong></summary>
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ['@cristianmpx/react-import-sheet-headless'],
+  },
+  worker: {
+    format: 'es',
+  },
+});
+```
+
+</details>
+
+<details>
+<summary><strong>Next.js</strong></summary>
+
+```javascript
+// next.config.js
+module.exports = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\.worker\.js$/,
+        use: { loader: 'worker-loader' },
+      });
+    }
+    return config;
+  },
+};
+```
+
+**Important:** Use `dynamic` import with `ssr: false`:
+
+```typescript
+const Importer = dynamic(() => import('./Importer'), { ssr: false });
+```
+
+</details>
+
+<details>
+<summary><strong>Storybook</strong></summary>
+
+```typescript
+// .storybook/main.ts
+async viteFinal(config) {
+  config.optimizeDeps = {
+    exclude: ['@cristianmpx/react-import-sheet-headless'],
+  };
+  config.worker = { format: 'es' };
+  return config;
+}
+```
+
+</details>
+
+See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for CRA, Remix, and Webpack configurations.
+
 ## Why Headless
 
 Bring your own components; we provide the logic, Web Worker performance, and bulk validation. No prebuilt `<Table />`—you own the UI and the UX.

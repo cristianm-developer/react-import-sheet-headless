@@ -1,6 +1,6 @@
 {
   "name": "@cristianmpx/react-import-sheet-headless",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Headless component for React Import Sheet",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,11 @@
     "lint": "eslint .",
     "publish": "npm run test && npm run build && npm publish --access public",
     "prepare": "husky",
-    "commit": "cz"
+    "commit": "cz",
+    "verify": "node scripts/verify-package.js",
+    "diagnose": "node scripts/diagnose-installation.js",
+    "prebuild": "node scripts/verify-package.js || true",
+    "postbuild": "node scripts/verify-package.js"
   },
   "config": {
     "commitizen": {
@@ -64,10 +68,23 @@
     "react",
     "import",
     "sheet",
-    "headless"
+    "headless",
+    "csv",
+    "excel",
+    "xlsx",
+    "validation",
+    "web-workers"
   ],
   "author": "Cristian Marin",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cristianm-developer/react-import-sheet-headless.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cristianm-developer/react-import-sheet-headless/issues"
+  },
+  "homepage": "https://github.com/cristianm-developer/react-import-sheet-headless#readme",
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
       "eslint --fix",

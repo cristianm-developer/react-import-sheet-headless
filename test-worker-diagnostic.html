@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Diagnostic Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 0; }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status.idle { background: #e3f2fd; color: #1976d2; }
+    .status.loading { background: #fff3e0; color: #f57c00; }
+    .status.success { background: #e8f5e9; color: #388e3c; }
+    .status.error { background: #ffebee; color: #d32f2f; }
+    .log {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #4caf50;
+      padding-left: 10px;
+    }
+    .log-entry.error {
+      border-left-color: #f44336;
+      color: #ef5350;
+    }
+    .log-entry.warning {
+      border-left-color: #ff9800;
+      color: #ffb74d;
+    }
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+    .info-value {
+      color: #333;
+      font-family: monospace;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Worker Diagnostic Test - react-import-sheet-headless</h1>
+  
+  <div class="container">
+    <h2>📦 Package Information</h2>
+    <div class="info-grid">
+      <div class="info-label">Package:</div>
+      <div class="info-value" id="package-name">Loading...</div>
+      
+      <div class="info-label">Version:</div>
+      <div class="info-value" id="package-version">Loading...</div>
+      
+      <div class="info-label">Environment:</div>
+      <div class="info-value" id="environment">Loading...</div>
+      
+      <div class="info-label">Worker Support:</div>
+      <div class="info-value" id="worker-support">Loading...</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>🧪 Test 1: Worker URL Resolution</h2>
+    <button onclick="testWorkerUrls()">Test Worker URLs</button>
+    <div class="log" id="url-log"></div>
+  </div>
+
+  <div class="container">
+    <h2>🧪 Test 2: Worker Creation</h2>
+    <button onclick="testWorkerCreation()">Test Worker Creation</button>
+    <div class="log" id="creation-log"></div>
+  </div>
+
+  <div class="container">
+    <h2>🧪 Test 3: Comlink Communication</h2>
+    <button onclick="testComlinkCommunication()">Test Comlink</button>
+    <div class="log" id="comlink-log"></div>
+  </div>
+
+  <div class="container">
+    <h2>🧪 Test 4: Full Pipeline (Parser)</h2>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" />
+    <button onclick="testFullPipeline()">Test Full Pipeline</button>
+    <div class="status idle" id="pipeline-status">Status: Idle</div>
+    <div class="log" id="pipeline-log"></div>
+  </div>
+
+  <div class="container">
+    <h2>🧪 Test 5: Network Inspector</h2>
+    <button onclick="testNetworkRequests()">Inspect Network Requests</button>
+    <div class="log" id="network-log"></div>
+  </div>
+
+  <script type="module">
+    // Global log function
+    window.log = (containerId, message, type = 'info') => {
+      const container = document.getElementById(containerId);
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    };
+
+    // Initialize package info
+    try {
+      document.getElementById('package-name').textContent = '@cristianmpx/react-import-sheet-headless';
+      document.getElementById('package-version').textContent = 'v1.0.1';
+      document.getElementById('environment').textContent = navigator.userAgent.includes('Chrome') ? 'Chrome/Chromium' : 
+                                                           navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                                                           navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+      document.getElementById('worker-support').textContent = typeof Worker !== 'undefined' ? '✅ Supported' : '❌ Not Supported';
+    } catch (err) {
+      console.error('Failed to initialize package info:', err);
+    }
+
+    // Test 1: Worker URL Resolution
+    window.testWorkerUrls = async () => {
+      const logId = 'url-log';
+      document.getElementById(logId).innerHTML = '';
+      log(logId, '🔍 Testing Worker URL resolution...');
+
+      try {
+        // Try to import the package
+        log(logId, 'Attempting to import package...');
+        const pkg = await import('@cristianmpx/react-import-sheet-headless');
+        log(logId, '✅ Package imported successfully', 'success');
+        log(logId, `Exported keys: ${Object.keys(pkg).join(', ')}`);
+
+        // Check for worker-url exports
+        log(logId, 'Checking for worker URL functions...');
+        
+        // Try to dynamically import worker-url modules
+        const workerTypes = ['parser', 'sanitizer', 'validator', 'transform', 'edit'];
+        for (const type of workerTypes) {
+          try {
+            log(logId, `Checking ${type}.worker.js...`);
+            
+            // Try to construct the URL manually
+            const baseUrl = new URL('@cristianmpx/react-import-sheet-headless', import.meta.url);
+            log(logId, `  Base URL: ${baseUrl.href}`);
+            
+            const workerUrl = new URL(`./${type}.worker.js`, baseUrl);
+            log(logId, `  Worker URL: ${workerUrl.href}`);
+            
+            // Try to fetch the worker file
+            const response = await fetch(workerUrl.href, { method: 'HEAD' });
+            if (response.ok) {
+              log(logId, `  ✅ ${type}.worker.js is accessible`, 'success');
+            } else {
+              log(logId, `  ❌ ${type}.worker.js returned ${response.status}`, 'error');
+            }
+          } catch (err) {
+            log(logId, `  ❌ Failed to check ${type}.worker.js: ${err.message}`, 'error');
+          }
+        }
+
+      } catch (err) {
+        log(logId, `❌ Failed to import package: ${err.message}`, 'error');
+        log(logId, `Stack: ${err.stack}`, 'error');
+      }
+    };
+
+    // Test 2: Worker Creation
+    window.testWorkerCreation = async () => {
+      const logId = 'creation-log';
+      document.getElementById(logId).innerHTML = '';
+      log(logId, '🔍 Testing Worker creation...');
+
+      try {
+        // Try to create a worker manually
+        log(logId, 'Attempting to create parser worker...');
+        
+        // Method 1: Try to get worker URL from package
+        try {
+          const pkg = await import('@cristianmpx/react-import-sheet-headless');
+          log(logId, 'Package imported');
+          
+          // Try to access internal worker creation (if exposed)
+          log(logId, 'Looking for worker creation functions...');
+          log(logId, `Available exports: ${Object.keys(pkg).join(', ')}`);
+          
+        } catch (err) {
+          log(logId, `Failed to import: ${err.message}`, 'error');
+        }
+
+        // Method 2: Try to create worker from known URL patterns
+        const possibleUrls = [
+          './node_modules/@cristianmpx/react-import-sheet-headless/dist/parser.worker.js',
+          '/node_modules/@cristianmpx/react-import-sheet-headless/dist/parser.worker.js',
+          '../node_modules/@cristianmpx/react-import-sheet-headless/dist/parser.worker.js',
+        ];
+
+        for (const url of possibleUrls) {
+          try {
+            log(logId, `Trying URL: ${url}`);
+            const worker = new Worker(url, { type: 'module' });
+            
+            // Set up timeout
+            const timeout = setTimeout(() => {
+              log(logId, `  ⚠️ Worker created but no response after 2s`, 'warning');
+              worker.terminate();
+            }, 2000);
+
+            worker.onmessage = (e) => {
+              clearTimeout(timeout);
+              log(logId, `  ✅ Worker responded: ${JSON.stringify(e.data)}`, 'success');
+              worker.terminate();
+            };
+
+            worker.onerror = (err) => {
+              clearTimeout(timeout);
+              log(logId, `  ❌ Worker error: ${err.message}`, 'error');
+              worker.terminate();
+            };
+
+            log(logId, `  Worker created, waiting for response...`);
+            
+          } catch (err) {
+            log(logId, `  ❌ Failed: ${err.message}`, 'error');
+          }
+        }
+
+      } catch (err) {
+        log(logId, `❌ Test failed: ${err.message}`, 'error');
+      }
+    };
+
+    // Test 3: Comlink Communication
+    window.testComlinkCommunication = async () => {
+      const logId = 'comlink-log';
+      document.getElementById(logId).innerHTML = '';
+      log(logId, '🔍 Testing Comlink communication...');
+
+      try {
+        log(logId, 'Importing Comlink...');
+        const Comlink = await import('comlink');
+        log(logId, '✅ Comlink imported', 'success');
+        log(logId, `Comlink version: ${Comlink.version || 'unknown'}`);
+
+        // Try to create a simple test worker
+        log(logId, 'Creating test worker...');
+        
+        const workerCode = `
+          import * as Comlink from 'comlink';
+          
+          const api = {
+            test: () => {
+              return 'Hello from worker!';
+            }
+          };
+          
+          Comlink.expose(api);
+        `;
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        
+        const worker = new Worker(workerUrl, { type: 'module' });
+        const proxy = Comlink.wrap(worker);
+
+        log(logId, 'Calling test method...');
+        const result = await proxy.test();
+        log(logId, `✅ Comlink communication works! Result: ${result}`, 'success');
+
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+
+      } catch (err) {
+        log(logId, `❌ Test failed: ${err.message}`, 'error');
+        log(logId, `Stack: ${err.stack}`, 'error');
+      }
+    };
+
+    // Test 4: Full Pipeline
+    window.testFullPipeline = async () => {
+      const logId = 'pipeline-log';
+      const statusEl = document.getElementById('pipeline-status');
+      document.getElementById(logId).innerHTML = '';
+      
+      const fileInput = document.getElementById('file-input');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        log(logId, '❌ Please select a file first', 'error');
+        return;
+      }
+
+      log(logId, `🔍 Testing full pipeline with file: ${file.name} (${file.size} bytes)`);
+      statusEl.className = 'status loading';
+      statusEl.textContent = 'Status: Loading...';
+
+      try {
+        log(logId, 'Importing package...');
+        const pkg = await import('@cristianmpx/react-import-sheet-headless');
+        log(logId, '✅ Package imported', 'success');
+
+        // This would normally be done in React, but we'll simulate it
+        log(logId, 'Note: This test requires React context. Use the Storybook diagnostic instead.', 'warning');
+        log(logId, 'File info:', 'info');
+        log(logId, `  Name: ${file.name}`);
+        log(logId, `  Type: ${file.type}`);
+        log(logId, `  Size: ${file.size} bytes`);
+        log(logId, `  Last modified: ${new Date(file.lastModified).toLocaleString()}`);
+
+        statusEl.className = 'status idle';
+        statusEl.textContent = 'Status: Test requires React context';
+
+      } catch (err) {
+        log(logId, `❌ Test failed: ${err.message}`, 'error');
+        log(logId, `Stack: ${err.stack}`, 'error');
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Status: Error';
+      }
+    };
+
+    // Test 5: Network Inspector
+    window.testNetworkRequests = async () => {
+      const logId = 'network-log';
+      document.getElementById(logId).innerHTML = '';
+      log(logId, '🔍 Inspecting network requests...');
+
+      // Check if Performance API is available
+      if (!window.performance || !window.performance.getEntriesByType) {
+        log(logId, '❌ Performance API not available', 'error');
+        return;
+      }
+
+      log(logId, 'Fetching resource timing entries...');
+      const resources = performance.getEntriesByType('resource');
+      
+      log(logId, `Found ${resources.length} resource entries`);
+      
+      // Filter for relevant resources
+      const workerResources = resources.filter(r => 
+        r.name.includes('worker') || 
+        r.name.includes('@cristianmpx') ||
+        r.name.includes('react-import-sheet')
+      );
+
+      if (workerResources.length === 0) {
+        log(logId, '⚠️ No worker-related resources found', 'warning');
+        log(logId, 'This might mean workers haven\'t been loaded yet');
+      } else {
+        log(logId, `Found ${workerResources.length} worker-related resources:`);
+        workerResources.forEach(r => {
+          log(logId, `  ${r.name}`);
+          log(logId, `    Duration: ${r.duration.toFixed(2)}ms`);
+          log(logId, `    Transfer size: ${r.transferSize} bytes`);
+        });
+      }
+
+      // Try to fetch worker files directly
+      log(logId, '\nTrying to fetch worker files directly...');
+      const workerFiles = ['parser.worker.js', 'sanitizer.worker.js', 'validator.worker.js', 'transform.worker.js', 'edit.worker.js'];
+      
+      for (const workerFile of workerFiles) {
+        try {
+          const url = `/node_modules/@cristianmpx/react-import-sheet-headless/dist/${workerFile}`;
+          log(logId, `Fetching: ${url}`);
+          
+          const response = await fetch(url, { method: 'HEAD' });
+          if (response.ok) {
+            log(logId, `  ✅ ${workerFile} is accessible (${response.status})`, 'success');
+          } else {
+            log(logId, `  ❌ ${workerFile} returned ${response.status}`, 'error');
+          }
+        } catch (err) {
+          log(logId, `  ❌ Failed to fetch ${workerFile}: ${err.message}`, 'error');
+        }
+      }
+    };
+
+    // Auto-run basic tests on load
+    window.addEventListener('load', () => {
+      console.log('🚀 Diagnostic page loaded');
+      console.log('Click the test buttons to run diagnostics');
+    });
+  </script>
+</body>
+</html>

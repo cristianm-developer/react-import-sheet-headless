@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Registry } from '../shared/registry/index.js';
 import type { ParserEngine, SheetLayout } from '../types/index.js';
 import { DEFAULT_PERSIST_KEY } from '../core/view/types/persisted-state.js';
@@ -31,7 +31,6 @@ export function ImporterProvider({
   const validatorRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
   const sanitizerRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
   const transformRegistry = useMemo(() => new Registry<(...args: unknown[]) => unknown>(), []);
-  const activeWorkerRef = useRef<Worker | null>(null);
   const phaseTimingsRef = useRef({
     parse: 0,
     sanitize: 0,
@@ -58,19 +57,8 @@ export function ImporterProvider({
     validatorRegistry,
     sanitizerRegistry,
     transformRegistry,
-    activeWorkerRef,
     phaseTimingsRef,
   });
-
-  useEffect(() => {
-    return () => {
-      const worker = activeWorkerRef.current;
-      if (worker) {
-        worker.terminate();
-        activeWorkerRef.current = null;
-      }
-    };
-  }, []);
 
   const value = useMemo<ImporterContextValue>(
     () => ({

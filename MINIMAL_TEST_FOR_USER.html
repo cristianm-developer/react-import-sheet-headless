@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Worker Test</title>
+</head>
+<body>
+  <h1>Minimal Worker Test - react-import-sheet-headless</h1>
+  <p>Este test verifica si el worker se puede crear y comunicar correctamente.</p>
+  <div id="log" style="font-family: monospace; white-space: pre-wrap; background: #f5f5f5; padding: 10px; margin-top: 20px;"></div>
+  
+  <script type="module">
+    const logEl = document.getElementById('log');
+    function log(msg) {
+      logEl.textContent += msg + '\n';
+      console.log(msg);
+    }
+    
+    try {
+      log('[1] Importing Comlink...');
+      const Comlink = await import('https://unpkg.com/comlink@4.4.2/dist/esm/comlink.mjs');
+      log('✓ Comlink imported');
+      
+      log('\n[2] Creating worker code...');
+      const workerCode = `
+        // Import Comlink in the worker
+        importScripts('https://unpkg.com/comlink@4.4.2/dist/umd/comlink.js');
+        
+        const api = {
+          async load(blob, options) {
+            return { message: 'load called', blobSize: blob.size };
+          },
+          async parseAll(onProgress) {
+            return { message: 'parseAll called' };
+          }
+        };
+        
+        Comlink.expose(api);
+      `;
+      
+      log('✓ Worker code created');
+      
+      log('\n[3] Creating Blob URL...');
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      log('✓ Blob URL: ' + url);
+      
+      log('\n[4] Creating Worker...');
+      const worker = new Worker(url);
+      log('✓ Worker created');
+      
+      worker.onerror = (e) => {
+        log('✗ Worker error: ' + e.message);
+      };
+      
+      log('\n[5] Wrapping worker with Comlink...');
+      const proxy = Comlink.wrap(worker);
+      log('✓ Proxy created');
+      
+      log('\n[6] Waiting 500ms for worker to initialize...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      log('\n[7] Calling proxy.load()...');
+      const testBlob = new Blob(['test'], { type: 'text/plain' });
+      const result = await proxy.load(testBlob, {});
+      log('✓ proxy.load() returned: ' + JSON.stringify(result));
+      
+      log('\n[8] Calling proxy.parseAll()...');
+      const result2 = await proxy.parseAll();
+      log('✓ proxy.parseAll() returned: ' + JSON.stringify(result2));
+      
+      log('\n✅ ALL TESTS PASSED - Worker communication works correctly!');
+      log('\nSi este test pasa pero tu implementación falla, el problema es:');
+      log('1. Tu node_modules tiene una versión vieja del paquete');
+      log('2. Tu bundler está usando un caché viejo');
+      log('3. Tu navegador está usando un caché viejo');
+      
+      worker.terminate();
+    } catch (e) {
+      log('\n✗ TEST FAILED: ' + e.message);
+      log('Stack: ' + e.stack);
+    }
+  </script>
+</body>
+</html>

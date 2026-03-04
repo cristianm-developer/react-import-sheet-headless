@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import * as Comlink from 'comlink';
+import { useCallback } from 'react';
 import type { SheetLayout } from '../../../types/sheet-layout.js';
 import type { SanitizedSheet } from '../../sanitizer/types/sanitized-sheet.js';
 import type { ValidatorDelta } from '../types/validator-delta.js';
@@ -7,60 +6,35 @@ import type { ImporterProgressDetail } from '../../../types/importer-state.js';
 import { useImporterContext } from '../../../providers/index.js';
 import { buildInitialSheet } from '../build-initial-sheet.js';
 import { applyValidatorDelta } from '../patch-delta.js';
-import { getValidatorWorkerUrl } from '../worker/worker-url.js';
+import { runValidation } from '../runner/run-validation.js';
+import { getValidatorGetters } from '../worker/worker-registry.js';
 
 export interface ValidatorWorkerOptions {
   signal?: AbortSignal;
 }
 
-type ValidatorWorkerApi = {
-  validate: (
-    sanitizedSheet: SanitizedSheet,
-    sheetLayout: SheetLayout,
-    options?: ValidatorWorkerOptions,
-    onProgress?: (d: ImporterProgressDetail) => void,
-  ) => Promise<ValidatorDelta>;
-};
-
 export function useValidatorWorker() {
-  const { setActiveWorker, dispatchProgress, setResult, layout, setPhaseTiming } =
-    useImporterContext();
-  const [workerProxy, setWorkerProxy] = useState<Comlink.Remote<ValidatorWorkerApi> | null>(null);
-  const workerRef = useRef<Worker | null>(null);
-
-  useEffect(() => {
-    const worker = new Worker(getValidatorWorkerUrl(), { type: 'module' });
-    workerRef.current = worker;
-    setActiveWorker(worker);
-    const proxy = Comlink.wrap<ValidatorWorkerApi>(worker);
-    queueMicrotask(() => setWorkerProxy(proxy));
-    return () => {
-      worker.terminate();
-      workerRef.current = null;
-      setActiveWorker(null);
-    };
-  }, [setActiveWorker]);
+  const { dispatchProgress, setResult, layout, setPhaseTiming } = useImporterContext();
 
   const validate = useCallback(
     async (
       sanitizedSheet: SanitizedSheet,
       sheetLayout: SheetLayout,
       options?: ValidatorWorkerOptions,
-      onProgress?: (d: ImporterProgressDetail) => void,
+      onProgress?: (d: ImporterProgressDetail) => void
     ): Promise<ValidatorDelta> => {
-      if (!workerProxy) throw new Error('Validator worker not ready');
       const progressCb = onProgress ?? dispatchProgress;
-      const progressProxy = Comlink.proxy(progressCb);
-      return workerProxy.validate(sanitizedSheet, sheetLayout, options ?? {}, progressProxy);
+      const getters = getValidatorGetters();
+      return runValidation(sanitizedSheet, sheetLayout, getters, progressCb, options?.signal);
     },
-    [workerProxy, dispatchProgress],
+    [dispatchProgress]
   );
 
   const validateAndApply = useCallback(
     async (
       sanitizedSheet: SanitizedSheet,
       options?: ValidatorWorkerOptions,
-      onProgress?: (d: ImporterProgressDetail) => void,
+      onProgress?: (d: ImporterProgressDetail) => void
     ): Promise<ValidatorDelta> => {
       if (!layout) throw new Error('Layout required for validation');
       const t0 = performance.now();
@@ -75,8 +49,8 @@ export function useValidatorWorker() {
       setResult(patched);
       return delta;
     },
-    [layout, validate, setResult, setPhaseTiming],
+    [layout, validate, setResult, setPhaseTiming]
   );
 
-  return { validate, validateAndApply, dispatchProgress, isReady: !!workerProxy };
+  return { validate, validateAndApply, dispatchProgress, isReady: true };
 }

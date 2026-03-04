@@ -10,6 +10,16 @@ See also: `.cursor/devlog.md` (session journal with technical decisions), `CHANG
 
 <!-- HISTORY_ENTRIES -->
 
+### 2026-03-04 — Critical fix: Worker module type issue (v1.0.6)
+
+**What changed:** Removed `{ type: 'module' }` option from all Worker constructors in: **useParserWorker**, **useSanitizerWorker**, **useValidatorWorker**, **useTransformWorker**, **useEditWorker**. Workers are now created with `new Worker(url)` instead of `new Worker(url, { type: 'module' })`.
+
+**Why:** The bundled Workers (from tsup) are **not** proper ES modules—they use IIFE/CommonJS style (start with `var wf=Object.create;...`) and have no `import`/`export` statements. When created with `type: "module"`, the browser's ES module loader failed to initialize them properly, causing Comlink to not expose the Worker API. This resulted in the error `"t.load is not a function"` (v1.0.5) / `"r.load is not a function"` (v1.0.2) when consumers tried to call `workerProxy.load()`. Classic script mode correctly executes the bundled IIFE code.
+
+**Impact:** Fixes critical bug in v1.0.2-1.0.5 where all CSV/XLSX imports failed. Core functionality is now restored.
+
+**Affected files:** src/core/parser/hooks/useParserWorker.ts, src/core/sanitizer/hooks/useSanitizerWorker.ts, src/core/validator/hooks/useValidatorWorker.ts, src/core/transform/hooks/useTransformWorker.ts, src/core/editor/hooks/useEditWorker.ts, package.json (version → 1.0.6), CHANGELOG.md, BUG_FIX_v1.0.6.md (new), RESPONSE_TO_BUG_REPORT_v1.0.6.md (new), .cursor/history.md.
+
 ### 2026-03-04 — Critical fix: Worker loading in npm packages (inline Workers as Blob URLs)
 
 **What changed:** **(1)** Workers are now **inlined as Blob URLs** instead of using `import.meta.url` for file resolution. **(2)** **tsup.config.ts** updated to disable code splitting (`splitting: false`) and bundle all dependencies (`noExternal: ['papaparse', 'xlsx', 'js-sha256', 'comlink']`) so Workers are self-contained. **(3)** Added **scripts/inline-workers.mjs** that runs after the first build, reads each Worker bundle, and generates `worker-url.ts` files with the Worker code as strings that create Blob URLs. **(4)** Build process now runs: `tsup → inline-workers.mjs → tsup` (second build includes the inlined Workers). **(5)** All **worker-url.ts** files (parser, sanitizer, validator, transform, edit) now return Blob URLs created from inlined Worker code. **(6)** Updated all **worker-url.test.ts** files to expect Blob URLs instead of file paths.

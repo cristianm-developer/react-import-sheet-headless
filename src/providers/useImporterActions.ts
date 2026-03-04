@@ -46,7 +46,6 @@ export function useImporterActions(
     validatorRegistry,
     sanitizerRegistry,
     transformRegistry,
-    activeWorkerRef,
     phaseTimingsRef,
   } = deps;
 
@@ -59,22 +58,10 @@ export function useImporterActions(
     [progressEventTarget]
   );
 
-  const setActiveWorker = useCallback(
-    (worker: Worker | null) => {
-      activeWorkerRef.current = worker;
-    },
-    [activeWorkerRef]
-  );
-
   const abort = useCallback(() => {
-    const worker = activeWorkerRef.current;
-    if (worker) {
-      worker.terminate();
-      activeWorkerRef.current = null;
-    }
     setState((prev) => ({ ...prev, status: 'cancelled' }));
     progressEventTarget.dispatchEvent(new CustomEvent(IMPORTER_ABORTED_EVENT));
-  }, [activeWorkerRef, progressEventTarget, setState]);
+  }, [progressEventTarget, setState]);
 
   const setPhaseTiming = useCallback(
     (phase: PipelinePhase, ms: number) => {
@@ -157,7 +144,6 @@ export function useImporterActions(
       registerTransform,
       abort,
       dispatchProgress,
-      setActiveWorker,
     }),
     [
       stateSetters,
@@ -170,7 +156,6 @@ export function useImporterActions(
       registerTransform,
       abort,
       dispatchProgress,
-      setActiveWorker,
     ]
   );
 }

@@ -1,6 +1,6 @@
 # @cristianmpx/react-import-sheet-headless
 
-Headless **React** library for **importing** and validating **Excel**/CSV sheet data. No built-in table UI—you bring your own components; the library provides the logic, **Web Worker** speed, and bulk validation.
+Headless **React** library for **importing** and validating **Excel**/CSV sheet data. No built-in table UI—you bring your own components; the library provides the logic and bulk validation.
 
 [![npm version](https://img.shields.io/npm/v/@cristianm/react-import-sheet-headless.svg)](https://www.npmjs.com/package/@cristianm/react-import-sheet-headless) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -14,36 +14,28 @@ npm install @cristianmpx/react-import-sheet-headless
 
 ### ⚙️ Framework Setup
 
-**Good news:** As of version 1.0.5, **no special configuration is required!** Workers are now inlined as Blob URLs, so the library works out-of-the-box with all bundlers (Vite, Webpack, Rollup, etc.).
-
-**For Next.js:** Use `dynamic` import with `ssr: false` to avoid server-side rendering issues:
-
-```typescript
-const Importer = dynamic(() => import('./Importer'), { ssr: false });
-```
-
-**Previous versions (1.0.4 and earlier):** If you're using an older version, you may need bundler-specific configuration. See [FRAMEWORK-SETUP.md](./FRAMEWORK-SETUP.md) for details, or upgrade to 1.0.5+ for automatic compatibility.
+**Good news:** As of version 2.0.0, **no special configuration is required!** The library runs entirely on the main thread, so it works out-of-the-box with all bundlers (Vite, Webpack, Rollup, etc.) and frameworks (Next.js, Remix, etc.).
 
 ## Why Headless
 
-Bring your own components; we provide the logic, Web Worker performance, and bulk validation. No prebuilt `<Table />`—you own the UI and the UX.
+Bring your own components; we provide the logic and bulk validation. No prebuilt `<Table />`—you own the UI and the UX.
 
 ## Pipeline
 
-Data flows through a single pipeline. Heavy steps run in Web Workers so the main thread stays responsive.
+Data flows through a single pipeline on the main thread.
 
 ```mermaid
 flowchart LR
-  A[Input File] --> B[Parser Worker]
+  A[Input File] --> B[Parser]
   B --> C[Convert]
-  C --> D[Sanitizer Worker]
-  D --> E[Validator Worker]
-  E --> F[Transform Worker]
+  C --> D[Sanitizer]
+  D --> E[Validator]
+  E --> F[Transform]
   F --> G[Sheet + Errors]
   G -.-> H[Edit optional]
 ```
 
-**Order:** Input File → Parser (Worker) → Convert (main thread) → Sanitizer (Worker) → Validator (Worker) → Transform (Worker) → Result (sheet) + Errors. Optional: cell-level edit on the result.
+**Order:** Input File → Parser → Convert → Sanitizer → Validator → Transform → Result (sheet) + Errors. Optional: cell-level edit on the result.
 
 ## Quick Start
 
@@ -126,7 +118,7 @@ function VirtualizedTable() {
 
 ## Error Handling
 
-The library exposes errors through `useSheetData().errors`. Errors include both **global errors** (parser failures, worker crashes) and **validation errors** (cell/row/sheet level).
+The library exposes errors through `useSheetData().errors`. Errors include both **global errors** (parser failures) and **validation errors** (cell/row/sheet level).
 
 ```typescript
 const { errors, sheet } = useSheetData();

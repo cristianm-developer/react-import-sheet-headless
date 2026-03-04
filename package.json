@@ -1,7 +1,7 @@
 {
   "name": "@cristianmpx/react-import-sheet-headless",
-  "version": "1.0.5",
-  "description": "Headless component for React Import Sheet",
+  "version": "2.0.0",
+  "description": "Headless React library for importing and validating Excel/CSV sheet data",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,15 +19,13 @@
   "scripts": {
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "build": "tsup --minify && node scripts/inline-workers.mjs && tsup --minify",
+    "build": "tsup --minify",
     "lint": "eslint .",
     "publish": "npm run test && npm run build && npm publish --access public",
     "prepare": "husky",
     "commit": "cz",
     "verify": "node scripts/verify-package.js",
-    "diagnose": "node scripts/diagnose-installation.js",
-    "prebuild": "node scripts/verify-package.js || true",
-    "postbuild": "node scripts/verify-package.js"
+    "diagnose": "node scripts/diagnose-installation.js"
   },
   "config": {
     "commitizen": {
@@ -72,8 +70,7 @@
     "csv",
     "excel",
     "xlsx",
-    "validation",
-    "web-workers"
+    "validation"
   ],
   "author": "Cristian Marin",
   "license": "MIT",
@@ -95,7 +92,6 @@
     ]
   },
   "dependencies": {
-    "comlink": "^4.4.2",
     "js-sha256": "^0.11.1",
     "papaparse": "^5.5.3",
     "xlsx": "^0.18.5"

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Worker Execution Test</title>
+</head>
+<body>
+  <h1>Worker Execution Test</h1>
+  <div id="output"></div>
+  <script type="module">
+    const output = document.getElementById('output');
+    
+    function log(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      output.appendChild(div);
+      console.log(msg);
+    }
+    
+    try {
+      // Import the library
+      log('Importing library...');
+      const lib = await import('../dist/index.js');
+      log('✓ Library imported');
+      
+      // Try to access the hook (this won't work outside React, but we can check exports)
+      log('Exports: ' + Object.keys(lib).join(', '));
+      
+      // Now let's manually test the worker creation
+      log('\nTesting worker creation manually...');
+      
+      // Extract the worker code from the bundle
+      const indexJs = await fetch('../dist/index.js').then(r => r.text());
+      log('✓ Fetched dist/index.js (' + indexJs.length + ' chars)');
+      
+      // Find the je() function
+      const jeMatch = indexJs.match(/function je\(\)\{let e=`([^`]+)`;.*?return URL\.createObjectURL\(r\)\}/);
+      if (!jeMatch) {
+        log('✗ Could not find je() function');
+      } else {
+        log('✓ Found je() function');
+        const workerCode = jeMatch[1];
+        log('  Worker code length: ' + workerCode.length);
+        log('  Contains wa(Jp)? ' + workerCode.includes('wa(Jp)'));
+        
+        // Try to create the worker
+        log('\nCreating worker from Blob...');
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        log('✓ Blob URL created: ' + url);
+        
+        const worker = new Worker(url);
+        log('✓ Worker created');
+        
+        // Listen for errors
+        worker.onerror = (e) => {
+          log('✗ Worker error: ' + e.message);
+        };
+        
+        // Try to communicate with the worker
+        log('\nTesting Comlink communication...');
+        
+        // We need to manually test if Comlink.wrap works
+        // For now, just check if the worker loads without errors
+        setTimeout(() => {
+          log('✓ Worker is running (no immediate errors)');
+          worker.terminate();
+        }, 1000);
+      }
+    } catch (e) {
+      log('✗ Error: ' + e.message);
+      console.error(e);
+    }
+  </script>
+</body>
+</html>

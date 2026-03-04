@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Manual Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .log { margin: 5px 0; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Worker Manual Test (v1.0.6)</h1>
+  <p>This test verifies that the Worker loads correctly without type: "module"</p>
+  
+  <button id="testBtn">Test Worker</button>
+  <button id="clearBtn">Clear Logs</button>
+  
+  <div id="logs"></div>
+
+  <script type="module">
+    import * as Comlink from 'https://unpkg.com/comlink@4.4.2/dist/esm/comlink.mjs';
+    
+    const logsDiv = document.getElementById('logs');
+    
+    function log(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsDiv.appendChild(div);
+    }
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      logsDiv.innerHTML = '';
+    });
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      log('Starting Worker test...', 'info');
+      
+      try {
+        // Create a simple test worker
+        const workerCode = `
+          // Import Comlink from CDN
+          importScripts('https://unpkg.com/comlink@4.4.2/dist/umd/comlink.js');
+          
+          const api = {
+            async load(blob, options = {}) {
+              return { success: true, message: 'load called', blobSize: blob.size };
+            },
+            async parseAll(onProgress) {
+              if (onProgress) onProgress({ phase: 'parsing', localPercent: 50 });
+              return { success: true, message: 'parseAll called' };
+            }
+          };
+          
+          Comlink.expose(api);
+        `;
+        
+        log('Creating Worker blob...', 'info');
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        log(`Worker URL: ${workerUrl}`, 'info');
+        
+        // Test 1: Without type: "module"
+        log('Test 1: Creating Worker WITHOUT type: "module"', 'info');
+        const worker1 = new Worker(workerUrl);
+        const proxy1 = Comlink.wrap(worker1);
+        
+        log('Waiting for Worker to initialize...', 'info');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        log('Checking if proxy1.load exists...', 'info');
+        log(`typeof proxy1.load: ${typeof proxy1.load}`, 'info');
+        
+        if (typeof proxy1.load === 'function') {
+          log('✅ proxy1.load is a function!', 'success');
+          
+          const testBlob = new Blob(['test'], { type: 'text/plain' });
+          const result = await proxy1.load(testBlob, {});
+          log(`✅ load() returned: ${JSON.stringify(result)}`, 'success');
+        } else {
+          log('❌ proxy1.load is NOT a function', 'error');
+        }
+        
+        worker1.terminate();
+        
+        // Test 2: With type: "module" (should fail)
+        log('', 'info');
+        log('Test 2: Creating Worker WITH type: "module" (should fail)', 'info');
+        try {
+          const worker2 = new Worker(workerUrl, { type: 'module' });
+          const proxy2 = Comlink.wrap(worker2);
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          log(`typeof proxy2.load: ${typeof proxy2.load}`, 'info');
+          
+          if (typeof proxy2.load === 'function') {
+            log('✅ proxy2.load is a function (unexpected!)', 'success');
+          } else {
+            log('❌ proxy2.load is NOT a function (expected with type: "module")', 'error');
+          }
+          
+          worker2.terminate();
+        } catch (err) {
+          log(`❌ Worker creation failed: ${err.message}`, 'error');
+        }
+        
+        URL.revokeObjectURL(workerUrl);
+        log('', 'info');
+        log('Test complete!', 'info');
+        
+      } catch (error) {
+        log(`❌ Test failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

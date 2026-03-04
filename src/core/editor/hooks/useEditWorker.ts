@@ -1,39 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import * as Comlink from 'comlink';
+import { useCallback } from 'react';
 import type { SheetLayout } from '../../../types/sheet-layout.js';
 import type { Sheet } from '../../../types/sheet.js';
-import { getEditWorkerUrl } from '../worker/worker-url.js';
+import { runEditPipeline } from '../run-edit-pipeline.js';
+import { getValidatorGetters } from '../../validator/worker/worker-registry.js';
+import { getTransformGetters } from '../../transform/worker/worker-registry.js';
 
 export interface EditWorkerOptions {
   signal?: AbortSignal;
 }
 
-type EditWorkerApi = {
-  runEdit: (
-    sheet: Sheet,
-    sheetLayout: SheetLayout,
-    rowIndex: number,
-    cellKey: string,
-    value: unknown,
-    options?: EditWorkerOptions,
-  ) => Promise<Sheet>;
-};
-
 export function useEditWorker() {
-  const [workerProxy, setWorkerProxy] = useState<Comlink.Remote<EditWorkerApi> | null>(null);
-  const workerRef = useRef<Worker | null>(null);
-
-  useEffect(() => {
-    const worker = new Worker(getEditWorkerUrl(), { type: 'module' });
-    workerRef.current = worker;
-    const proxy = Comlink.wrap<EditWorkerApi>(worker);
-    queueMicrotask(() => setWorkerProxy(proxy));
-    return () => {
-      worker.terminate();
-      workerRef.current = null;
-    };
-  }, []);
-
   const runEdit = useCallback(
     async (
       sheet: Sheet,
@@ -41,20 +17,22 @@ export function useEditWorker() {
       rowIndex: number,
       cellKey: string,
       value: unknown,
-      options?: EditWorkerOptions,
+      options?: EditWorkerOptions
     ): Promise<Sheet> => {
-      if (!workerProxy) throw new Error('Edit worker not ready');
-      return workerProxy.runEdit(
+      const validator = getValidatorGetters();
+      const transform = getTransformGetters();
+      return runEditPipeline(
         sheet,
         sheetLayout,
         rowIndex,
         cellKey,
         value,
-        options ?? {},
+        { validator, transform },
+        options?.signal
       );
     },
-    [workerProxy],
+    []
   );
 
-  return { runEdit, isReady: !!workerProxy };
+  return { runEdit, isReady: true };
 }

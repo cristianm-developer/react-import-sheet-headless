@@ -68,7 +68,6 @@ export interface ImporterContextValue {
   ) => void;
   abort: () => void;
   dispatchProgress: (detail: ImporterProgressDetail) => void;
-  setActiveWorker: (worker: Worker | null) => void;
   persist: boolean;
   persistKey: string;
   hasRecoverableSession: boolean;
@@ -100,6 +99,5 @@ export interface UseImporterActionsDeps {
   validatorRegistry: Registry<(...args: unknown[]) => unknown>;
   sanitizerRegistry: Registry<(...args: unknown[]) => unknown>;
   transformRegistry: Registry<(...args: unknown[]) => unknown>;
-  activeWorkerRef: React.MutableRefObject<Worker | null>;
   phaseTimingsRef: React.MutableRefObject<PipelineMetricsTimings>;
 }

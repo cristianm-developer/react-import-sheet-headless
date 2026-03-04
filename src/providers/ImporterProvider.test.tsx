@@ -35,10 +35,7 @@ function ActionsConsumer() {
   const ctx = useImporterContext();
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => ctx.setFile(new File([''], 'test.csv'))}
-      >
+      <button type="button" onClick={() => ctx.setFile(new File([''], 'test.csv'))}>
         setFile
       </button>
       <button type="button" onClick={() => ctx.setStatus('loading')}>
@@ -64,7 +61,7 @@ describe('ImporterProvider', () => {
     render(
       <ImporterProvider>
         <StatusConsumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('file')).toHaveTextContent('null');
     expect(screen.getByTestId('rawData')).toHaveTextContent('null');
@@ -78,7 +75,7 @@ describe('ImporterProvider', () => {
       <ImporterProvider>
         <StatusConsumer />
         <ActionsConsumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     fireEvent.click(screen.getByRole('button', { name: 'setFile' }));
     expect(screen.getByTestId('file')).toHaveTextContent('test.csv');
@@ -97,20 +94,14 @@ describe('ImporterProvider', () => {
             const handler = (e: Event) => {
               received = (e as CustomEvent).detail;
             };
-            ctx.progressEventTarget.addEventListener(
-              IMPORTER_PROGRESS_EVENT,
-              handler,
-            );
+            ctx.progressEventTarget.addEventListener(IMPORTER_PROGRESS_EVENT, handler);
             ctx.dispatchProgress({
               phase: 'validating',
               globalPercent: 50,
               currentRow: 250,
               totalRows: 1000,
             });
-            ctx.progressEventTarget.removeEventListener(
-              IMPORTER_PROGRESS_EVENT,
-              handler,
-            );
+            ctx.progressEventTarget.removeEventListener(IMPORTER_PROGRESS_EVENT, handler);
           }}
         >
           dispatch
@@ -120,7 +111,7 @@ describe('ImporterProvider', () => {
     render(
       <ImporterProvider>
         <ProgressListener />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     fireEvent.click(screen.getByRole('button', { name: 'dispatch' }));
     expect(received).toEqual({
@@ -140,11 +131,7 @@ describe('ImporterProvider', () => {
           abortedRef.current = true;
         };
         ctx.progressEventTarget.addEventListener(IMPORTER_ABORTED_EVENT, handler);
-        return () =>
-          ctx.progressEventTarget.removeEventListener(
-            IMPORTER_ABORTED_EVENT,
-            handler,
-          );
+        return () => ctx.progressEventTarget.removeEventListener(IMPORTER_ABORTED_EVENT, handler);
       }, [ctx.progressEventTarget]);
       return (
         <>
@@ -158,7 +145,7 @@ describe('ImporterProvider', () => {
     render(
       <ImporterProvider>
         <AbortListener />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     fireEvent.click(screen.getByRole('button', { name: 'abort' }));
     expect(screen.getByTestId('status')).toHaveTextContent('cancelled');
@@ -169,10 +156,10 @@ describe('ImporterProvider', () => {
     render(
       <ImporterProvider>
         <ActionsConsumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(() =>
-      fireEvent.click(screen.getByRole('button', { name: 'registerValidator' })),
+      fireEvent.click(screen.getByRole('button', { name: 'registerValidator' }))
     ).not.toThrow();
   });
 
@@ -199,58 +186,10 @@ describe('ImporterProvider', () => {
     render(
       <ImporterProvider>
         <RegistryConsumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     fireEvent.click(screen.getByRole('button', { name: 'registerSanitizer' }));
     fireEvent.click(screen.getByRole('button', { name: 'registerTransform' }));
-  });
-
-  it('should call worker.terminate() when abort is called and a worker was set', () => {
-    const terminateMock = vi.fn();
-    const mockWorker = { terminate: terminateMock } as unknown as Worker;
-    function AbortWithWorkerConsumer() {
-      const ctx = useImporterContext();
-      return (
-        <div>
-          <button type="button" onClick={() => ctx.setActiveWorker(mockWorker)}>
-            setWorker
-          </button>
-          <button type="button" onClick={() => ctx.abort()}>
-            abort
-          </button>
-          <span data-testid="status">{ctx.status}</span>
-        </div>
-      );
-    }
-    render(
-      <ImporterProvider>
-        <AbortWithWorkerConsumer />
-      </ImporterProvider>,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'setWorker' }));
-    fireEvent.click(screen.getByRole('button', { name: 'abort' }));
-    expect(terminateMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('status')).toHaveTextContent('cancelled');
-  });
-
-  it('should call worker.terminate() on unmount when a worker was set', () => {
-    const terminateMock = vi.fn();
-    const mockWorker = { terminate: terminateMock } as unknown as Worker;
-    function SetWorkerConsumer() {
-      const ctx = useImporterContext();
-      useEffect(() => {
-        ctx.setActiveWorker(mockWorker);
-      }, [ctx]);
-      return <span data-testid="mounted">mounted</span>;
-    }
-    const { unmount } = render(
-      <ImporterProvider>
-        <SetWorkerConsumer />
-      </ImporterProvider>,
-    );
-    expect(screen.getByTestId('mounted')).toBeInTheDocument();
-    unmount();
-    expect(terminateMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -261,18 +200,35 @@ describe('useImporterContext', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
-  it('should expose all context API: state, setters, processFile, register*, abort, dispatchProgress, setActiveWorker', () => {
+  it('should expose all context API: state, setters, processFile, register*, abort, dispatchProgress', () => {
     function Consumer() {
       const ctx = useImporterContext();
       const keys = [
-        'file', 'rawData', 'documentHash', 'status', 'result', 'layout', 'engine',
-        'progressEventTarget', 'setLayout', 'setEngine', 'setFile', 'setRawData', 'setDocumentHash',
-        'setStatus', 'setResult', 'processFile', 'registerValidator', 'registerSanitizer',
-        'registerTransform', 'abort', 'dispatchProgress', 'setActiveWorker',
+        'file',
+        'rawData',
+        'documentHash',
+        'status',
+        'result',
+        'layout',
+        'engine',
+        'progressEventTarget',
+        'setLayout',
+        'setEngine',
+        'setFile',
+        'setRawData',
+        'setDocumentHash',
+        'setStatus',
+        'setResult',
+        'processFile',
+        'registerValidator',
+        'registerSanitizer',
+        'registerTransform',
+        'abort',
+        'dispatchProgress',
       ];
       const missing = keys.filter((k) => !(k in ctx));
       return <span data-testid="missing">{missing.length > 0 ? missing.join(',') : 'none'}</span>;
@@ -280,7 +236,7 @@ describe('useImporterContext', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('missing')).toHaveTextContent('none');
   });
@@ -299,15 +255,19 @@ describe('useImporterContext', () => {
         <div>
           <span data-testid="rawData">{ctx.rawData === null ? 'null' : 'set'}</span>
           <span data-testid="documentHash">{ctx.documentHash ?? 'null'}</span>
-          <button type="button" onClick={() => ctx.setRawData(rawSheet)}>setRawData</button>
-          <button type="button" onClick={() => ctx.setDocumentHash('hash-123')}>setDocumentHash</button>
+          <button type="button" onClick={() => ctx.setRawData(rawSheet)}>
+            setRawData
+          </button>
+          <button type="button" onClick={() => ctx.setDocumentHash('hash-123')}>
+            setDocumentHash
+          </button>
         </div>
       );
     }
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('rawData')).toHaveTextContent('null');
     expect(screen.getByTestId('documentHash')).toHaveTextContent('null');
@@ -335,7 +295,7 @@ describe('useImporterContext', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('layout')).toHaveTextContent('null');
     fireEvent.click(screen.getByRole('button', { name: 'setLayout' }));
@@ -348,15 +308,19 @@ describe('useImporterContext', () => {
       return (
         <div>
           <span data-testid="engine">{ctx.engine ?? 'null'}</span>
-          <button type="button" onClick={() => ctx.setEngine('csv')}>setCsv</button>
-          <button type="button" onClick={() => ctx.setEngine('xlsx')}>setXlsx</button>
+          <button type="button" onClick={() => ctx.setEngine('csv')}>
+            setCsv
+          </button>
+          <button type="button" onClick={() => ctx.setEngine('xlsx')}>
+            setXlsx
+          </button>
         </div>
       );
     }
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('engine')).toHaveTextContent('null');
     fireEvent.click(screen.getByRole('button', { name: 'setCsv' }));
@@ -373,7 +337,7 @@ describe('useImporter', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
@@ -390,7 +354,7 @@ describe('useImporter', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('hasProcessFile')).toHaveTextContent('true');
     expect(screen.getByTestId('hasAbort')).toHaveTextContent('true');
@@ -404,7 +368,7 @@ describe('useImporterStatus', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
@@ -421,7 +385,7 @@ describe('useImporterStatus', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('status')).toHaveTextContent('idle');
     expect(screen.getByTestId('hasTarget')).toHaveTextContent('true');
@@ -435,7 +399,7 @@ describe('useSheetData', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
@@ -452,7 +416,7 @@ describe('useSheetData', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('sheet')).toHaveTextContent('null');
     expect(screen.getByTestId('errors')).toHaveTextContent('[]');
@@ -466,23 +430,19 @@ describe('useSheetEditor', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
   it('should return editCell function', () => {
     function Consumer() {
       const { editCell } = useSheetEditor();
-      return (
-        <span data-testid="hasEditCell">
-          {String(typeof editCell === 'function')}
-        </span>
-      );
+      return <span data-testid="hasEditCell">{String(typeof editCell === 'function')}</span>;
     }
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('hasEditCell')).toHaveTextContent('true');
   });
@@ -495,7 +455,7 @@ describe('useImporterEventTarget', () => {
       return null;
     }
     expect(() => render(<BadConsumer />)).toThrow(
-      'useImporter must be used within an ImporterProvider',
+      'useImporter must be used within an ImporterProvider'
     );
   });
 
@@ -523,7 +483,7 @@ describe('useImporterEventTarget', () => {
               progressEventTarget.dispatchEvent(
                 new CustomEvent(IMPORTER_PROGRESS_EVENT, {
                   detail: { phase: 'test', globalPercent: 10 },
-                }),
+                })
               );
             }}
           >
@@ -538,7 +498,7 @@ describe('useImporterEventTarget', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     fireEvent.click(screen.getByRole('button', { name: 'subscribe' }));
     fireEvent.click(screen.getByRole('button', { name: 'dispatch' }));
@@ -556,10 +516,7 @@ describe('processFile and layout', () => {
         <div>
           <span data-testid="status">{status}</span>
           <span data-testid="file">{file === null ? 'null' : file.name}</span>
-          <button
-            type="button"
-            onClick={() => processFile(new File(['a,b'], 'data.csv'))}
-          >
+          <button type="button" onClick={() => processFile(new File(['a,b'], 'data.csv'))}>
             process
           </button>
         </div>
@@ -568,7 +525,7 @@ describe('processFile and layout', () => {
     render(
       <ImporterProvider>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('status')).toHaveTextContent('idle');
     fireEvent.click(screen.getByRole('button', { name: 'process' }));
@@ -584,7 +541,7 @@ describe('processFile and layout', () => {
     render(
       <ImporterProvider engine="csv">
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('engine')).toHaveTextContent('csv');
   });
@@ -597,14 +554,12 @@ describe('processFile and layout', () => {
     };
     function Consumer() {
       const ctx = useImporterContext();
-      return (
-        <span data-testid="layoutName">{ctx.layout?.name ?? 'null'}</span>
-      );
+      return <span data-testid="layoutName">{ctx.layout?.name ?? 'null'}</span>;
     }
     render(
       <ImporterProvider layout={layout}>
         <Consumer />
-      </ImporterProvider>,
+      </ImporterProvider>
     );
     expect(screen.getByTestId('layoutName')).toHaveTextContent('test');
   });
